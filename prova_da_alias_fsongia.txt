@@ -1,2 +1,4 @@
 per esterni:
 git clone https:....
+
+e basta
