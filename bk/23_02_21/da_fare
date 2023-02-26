@@ -1,0 +1,11 @@
+DA FARE
+-guardare come sono numerati subs, lo capisco da start elem (list sub)
+elementi mesh numerati nella direzione temporale, elementi sub allo stesso modo. immagino
+mesh con in verticale il tempo, i numeri per la prima colonna (fisso spazio e vado su in tempo)
+vanno da 1 a NT.
+-pensare a femregion, come descrivere numerazione elementi
+
+-estendere R per w
+-controllare Aj
+-finito questo si puo scrivere ras solve
+-gestire A da matlab

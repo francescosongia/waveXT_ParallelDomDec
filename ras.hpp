@@ -1,21 +1,20 @@
 #ifndef RAS_HPP_
 #define RAS_HPP_
 
-#include "domaindec_solver_base.hpp"
-#include <std::vector>
+#include <utility>
 
-typedef std::vector<double> Vec;
+#include "domaindec_solver_base.hpp"
+
 
 class Ras : public DomainDecSolverBase {
 public:
-  Ras(Decomposition DataDD) : DomainDecSolverBase(DataDD){};
+  Ras(Domain dom, const Decomposition& dec,const SpMat& A) : DomainDecSolverBase(dom,dec,A){};
 
-  Vec solve() override;
-  // pensare a modo per tonrare tutte le performance, probabile che debba creare
-  // una classe result in cui popolo i vari campi
+  Eigen::VectorXd solve(const SpMat& A, const SpMat& b, SolverTraits traits) override;
+        //ritornare tupla con u,w,obj perf
 
 private:
-  Vec precondAction();
+  Eigen::VectorXd precondAction(const SpMat& x);
 };
 
 #endif
