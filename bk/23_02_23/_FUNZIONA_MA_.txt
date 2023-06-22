@@ -1,7 +1,0 @@
-tutti i metodi funzionanon e salva bene vettore
-pero il risultato è sbagliato
-
-controllare:
--matrici R (occhio a sesto elem)
--in precondAction controllare subito xk=rk*x
--come risolvere sistema lineare in precondAction
