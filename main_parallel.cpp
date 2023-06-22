@@ -8,8 +8,9 @@
 #include <vector>
 #include "Eigen/Dense"
 #include "exchange_txt.h"
+#include <mpi.h>
 
-int main() {
+int main(int argc, char **argv) {
     unsigned int nx,nt,nln,nsub_x,nsub_t;
     double X,T;
     int n,m;
@@ -28,11 +29,11 @@ int main() {
     Domain dom(nx, nt, X, T, nln);
     Decomposition DataDD(dom, nsub_x, nsub_t,n,m);
     std::cout<<"Decomposition created"<<std::endl;
-
     std::string filenameA=R"(/home/scientific-vm/Desktop/projectPACS/A.txt)";
     std::string filenameb=R"(/home/scientific-vm/Desktop/projectPACS/b.txt)";
     //std::string filenameA=R"(C:\Users\franc\Desktop\pacsPROJECT_test\A.txt)";
     //std::string filenameb=R"(C:\Users\franc\Desktop\pacsPROJECT_test\b.txt)";
+
     SpMat A=readMat_fromtxt(filenameA,nt*nx*nln*2,nt*nx*nln*2);
     SpMat b=readMat_fromtxt(filenameb,nt*nx*nln*2,1);
     std::cout<<"get problem matrices"<<std::endl;
@@ -40,14 +41,19 @@ int main() {
     double tol{1e-10};
     unsigned int max_it{50};
     SolverTraits traits(max_it,tol);
-    std::string method="PIPE";
+    std::string method="RAS";
     std::cout<<"method used: "<<method<<std::endl;
+
+    MPI_Init(NULL,NULL);
 
     DomainDecSolverFactory solver(dom,DataDD);
     Eigen::VectorXd res=solver(method,A,b,traits);
     std::cout<<res(0)<<std::endl;
+    //std::string f=R"(C:\Users\franc\Desktop\pacsPROJECT_test\u.txt)";
     std::string f=R"(/home/scientific-vm/Desktop/projectPACS/u.txt)";
     saveVec_totxt(f,res);
+
+    MPI_Finalize();
 
 
 /*

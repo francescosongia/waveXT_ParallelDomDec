@@ -29,6 +29,7 @@ public:
         overlap_forw_(dom.d()+1, nsub_t * nsub_x),
         start_elem_(nsub_t * nsub_x){this->createDec(n, m);};
 
+
 private:
   Domain domain;
   unsigned int nsub_x_;
@@ -38,8 +39,9 @@ private:
 
   // inserire una struttura che dia l'informazione di come sono numerati i sub,
   // in che direzione
-  Eigen::MatrixXi overlap_forw_;
   Eigen::MatrixXi overlap_back_;
+  Eigen::MatrixXi overlap_forw_;
+
 
   std::vector<unsigned int> start_elem_;
 
