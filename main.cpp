@@ -45,7 +45,8 @@ int main() {
 
     int np = 0;
     int rank = 0;
-    DomainDecSolverFactory solver(dom,DataDD, np,rank);
+    LocalMatrices local_mat(dom, DataDD, A, np, rank);
+    DomainDecSolverFactory solver(dom,DataDD, local_mat);
     Eigen::VectorXd res=solver(method,A,b,traits);
     std::cout<<res(0)<<std::endl;
     std::string f=R"(/home/scientific-vm/Desktop/projectPACS/u.txt)";

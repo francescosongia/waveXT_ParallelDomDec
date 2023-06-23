@@ -40,9 +40,11 @@ Eigen::VectorXd RasPipelined::precondAction(const SpMat& x,SolverTraits traits) 
     Eigen::VectorXd uk(domain.nln()*DataDD.sub_sizes()[0]*DataDD.sub_sizes()[1]*2);
     for(unsigned int k:sub_in_zone){
         Eigen::SparseLU<SpMat > lu;
-        lu.compute(localA_[k-1]);
-        uk = lu.solve(R_[k-1]*x);
-        z=z+(R_tilde_[k-1].transpose())*uk;
+        lu.compute(local_mat.getAk(k));
+        auto temp = local_mat.getRk(k);
+        uk = lu.solve(temp.first*x);
+        z=z+(temp.second.transpose())*uk;
+
     }
     return z;
 }
@@ -57,7 +59,7 @@ unsigned int RasPipelined::check_sx(const Eigen::VectorXd& v, double tol_sx) {
     unsigned int fail=0;
     Eigen::VectorXd res(domain.nln()*DataDD.sub_sizes()[0]*DataDD.sub_sizes()[1]*2);
     for(size_t i=subt_sx_;i<=DataDD.nsub_t()*(DataDD.nsub_x()-1)+1;i+=DataDD.nsub_t()){
-        res=getRk(i).first*v;
+        res=local_mat.getRk(i).first*v;
         auto err= res.lpNorm<Eigen::Infinity>();
         if(err>tol_sx){
             fail=1;

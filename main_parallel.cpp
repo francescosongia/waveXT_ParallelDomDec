@@ -1,5 +1,6 @@
 #include "domain.hpp"
 #include "decomposition.hpp"
+#include "local_matrices.hpp"
 #include "domaindec_solver_base.hpp"
 #include "domaindec_solver_factory.hpp"
 #include "ras.hpp"
@@ -9,6 +10,7 @@
 #include "Eigen/Dense"
 #include "exchange_txt.h"
 #include <mpi.h>
+//troppi include
 
 int main(int argc, char **argv) {
     unsigned int nx,nt,nln,nsub_x,nsub_t;
@@ -26,6 +28,16 @@ int main(int argc, char **argv) {
     m=6;
     // then with GetPot
 
+    //NEXT
+    // fare lo stesso per pipe
+    // ognuno fa solo le sue local
+    // aggiungo vettore ordinamento locale rk
+    // gestire meglio np, rank. ParallelTraits
+    // generica interfaccia sequantial vs parallel
+    // intraparallelization
+    // postproccesing
+
+
     Domain dom(nx, nt, X, T, nln);
     Decomposition DataDD(dom, nsub_x, nsub_t,n,m);
     std::cout<<"Decomposition created"<<std::endl;
@@ -33,29 +45,30 @@ int main(int argc, char **argv) {
     std::string filenameb=R"(/home/scientific-vm/Desktop/projectPACS/b.txt)";
     //std::string filenameA=R"(C:\Users\franc\Desktop\pacsPROJECT_test\A.txt)";
     //std::string filenameb=R"(C:\Users\franc\Desktop\pacsPROJECT_test\b.txt)";
+    MPI_Init(NULL,NULL);
+    int rank{0},np{0};
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &np);
 
     SpMat A=readMat_fromtxt(filenameA,nt*nx*nln*2,nt*nx*nln*2);
     SpMat b=readMat_fromtxt(filenameb,nt*nx*nln*2,1);
-    std::cout<<"get problem matrices"<<std::endl;
+    std::cout<<"get problem matrices, rank: "<<rank<<std::endl;
 
     double tol{1e-10};
     unsigned int max_it{50};
     SolverTraits traits(max_it,tol);
     std::string method="RAS";
-    std::cout<<"method used: "<<method<<std::endl;
+    std::cout<<"method used: "<<method<<", rank: "<<rank<<std::endl;
 
-    MPI_Init(NULL,NULL);
-    int rank{0},np{0};
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &np);
-    //if (rank==0){
-    DomainDecSolverFactory solver(dom,DataDD,np, rank);
+    LocalMatrices local_mat(dom, DataDD, A, np, rank);
+    DomainDecSolverFactory solver(dom,DataDD,local_mat);
     Eigen::VectorXd res=solver(method,A,b,traits);
+    if (rank==0){
     std::cout<<res(0)<<std::endl;
     //std::string f=R"(C:\Users\franc\Desktop\pacsPROJECT_test\u.txt)";
     std::string f=R"(/home/scientific-vm/Desktop/projectPACS/u.txt)";
     saveVec_totxt(f,res);
-    //}
+    }
     MPI_Finalize();
 
 

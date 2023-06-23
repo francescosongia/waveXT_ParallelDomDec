@@ -17,11 +17,10 @@ class DomainDecSolverFactory {
 private:
   Domain domain;
   Decomposition DataDD;
-  int np;
-  int current_rank;
+  LocalMatrices local_matrices;
 
 public:
-  DomainDecSolverFactory(Domain dom,Decomposition dec, int np_, int current_rank_=0) : domain(dom),DataDD(std::move(dec)), np(np_),current_rank(current_rank_){};
+  DomainDecSolverFactory(Domain dom,Decomposition dec, LocalMatrices local_mat) : domain(dom),DataDD(std::move(dec)), local_matrices(std::move(local_mat)){};
 
   Eigen::VectorXd operator()(const std::string &, const SpMat& A,const SpMat &b, SolverTraits traits);
 
