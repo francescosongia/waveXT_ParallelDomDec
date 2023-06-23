@@ -8,7 +8,7 @@
 
 class Ras : public DomainDecSolverBase {
 public:
-  Ras(Domain dom, const Decomposition& dec,const SpMat& A) : DomainDecSolverBase(dom,dec,A){};
+  Ras(Domain dom, const Decomposition& dec,const SpMat& A,int np, int current_rank=0) : DomainDecSolverBase(dom,dec,A, np,current_rank){};
 
   Eigen::VectorXd solve(const SpMat& A, const SpMat& b, SolverTraits traits) override;
         //ritornare tupla con u,w,obj perf

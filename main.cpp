@@ -40,10 +40,12 @@ int main() {
     double tol{1e-10};
     unsigned int max_it{50};
     SolverTraits traits(max_it,tol);
-    std::string method="PIPE";
+    std::string method="RAS";
     std::cout<<"method used: "<<method<<std::endl;
 
-    DomainDecSolverFactory solver(dom,DataDD);
+    int np = 0;
+    int rank = 0;
+    DomainDecSolverFactory solver(dom,DataDD, np,rank);
     Eigen::VectorXd res=solver(method,A,b,traits);
     std::cout<<res(0)<<std::endl;
     std::string f=R"(/home/scientific-vm/Desktop/projectPACS/u.txt)";

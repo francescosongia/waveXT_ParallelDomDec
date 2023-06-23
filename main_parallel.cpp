@@ -20,9 +20,9 @@ int main(int argc, char **argv) {
     T=1;
     nln=6;
 
-    nsub_x=3;
+    nsub_x=2; //3
     nsub_t=4;
-    n=8;
+    n=12;  //8
     m=6;
     // then with GetPot
 
@@ -45,14 +45,17 @@ int main(int argc, char **argv) {
     std::cout<<"method used: "<<method<<std::endl;
 
     MPI_Init(NULL,NULL);
-
-    DomainDecSolverFactory solver(dom,DataDD);
+    int rank{0},np{0};
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &np);
+    //if (rank==0){
+    DomainDecSolverFactory solver(dom,DataDD,np, rank);
     Eigen::VectorXd res=solver(method,A,b,traits);
     std::cout<<res(0)<<std::endl;
     //std::string f=R"(C:\Users\franc\Desktop\pacsPROJECT_test\u.txt)";
     std::string f=R"(/home/scientific-vm/Desktop/projectPACS/u.txt)";
     saveVec_totxt(f,res);
-
+    //}
     MPI_Finalize();
 
 

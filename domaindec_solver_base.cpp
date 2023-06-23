@@ -56,10 +56,22 @@ std::pair<SpMat, SpMat> DomainDecSolverBase::createRK(unsigned int k) {
 }
 
 void DomainDecSolverBase::createRMatrices() {
-    for(unsigned int k=1;k<DataDD.nsub()+1;++k){
-        std::pair<SpMat, SpMat> res= createRK(k);
-        R_[k-1]=res.first;
-        R_tilde_[k-1]=res.second;
+    if(sub_assignment.np() == 0){
+        for(unsigned int k=1;k<DataDD.nsub()+1;++k){
+            std::pair<SpMat, SpMat> res= createRK(k);
+            R_[k-1]=res.first;
+            R_tilde_[k-1]=res.second;
+        }
+    }
+    else{
+        //leggere subsidivision
+        //auto sub_division = sub_assignment.sub_division();
+
+        for(unsigned int k=1;k<DataDD.nsub()+1;++k){
+            std::pair<SpMat, SpMat> res= createRK(k);
+            R_[k-1]=res.first;
+            R_tilde_[k-1]=res.second;
+        }
     }
 }
 

@@ -8,7 +8,8 @@
 
 class RasPipelined : public DomainDecSolverBase {
 public:
-  RasPipelined(Domain dom, const Decomposition& dec,const SpMat& A) : DomainDecSolverBase(dom,dec,A),solves_(0),subt_sx_(1),zone_(2),it_waited_(0){};
+  RasPipelined(Domain dom, const Decomposition& dec,const SpMat& A, int np, int current_rank=0) : 
+                DomainDecSolverBase(dom,dec,A,np,current_rank),solves_(0),subt_sx_(1),zone_(2),it_waited_(0){};
 
   Eigen::VectorXd solve(const SpMat& A, const SpMat& b, SolverTraits traits) override;
         //ritornare tupla con u,w,obj perf
