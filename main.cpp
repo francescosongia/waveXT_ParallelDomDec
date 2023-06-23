@@ -19,9 +19,9 @@ int main() {
     T=1;
     nln=6;
 
-    nsub_x=3;
+    nsub_x=2;
     nsub_t=4;
-    n=8;
+    n=12;
     m=6;
     // then with GetPot
 

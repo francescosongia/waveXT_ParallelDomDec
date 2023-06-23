@@ -22,6 +22,8 @@ Eigen::VectorXd Ras::precondAction(const SpMat& x) {
 }
 
 */
+
+
 // PARALLEL
 // - prima prova: spezzo il for loop e assegno ai due rank la prima metà e poi l'altra
  Eigen::VectorXd Ras::precondAction(const SpMat& x) {
@@ -44,17 +46,16 @@ Eigen::VectorXd Ras::precondAction(const SpMat& x) {
      }
 
      MPI_Allreduce(MPI_IN_PLACE, z.data(), domain.nln()*domain.nt()*domain.nx()*2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-     /*
-     if(rank==0){
-       MPI_Reduce(MPI_IN_PLACE, z.data(), domain.nln()*domain.nt()*domain.nx()*2, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-     }
-     else{
-       MPI_Reduce(z.data(), nullptr, domain.nln()*domain.nt()*domain.nx()*2, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-     }
-     */
+     
+     //if(rank==0){
+     //  MPI_Reduce(MPI_IN_PLACE, z.data(), domain.nln()*domain.nt()*domain.nx()*2, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+     //}
+     //else{
+     //  MPI_Reduce(z.data(), nullptr, domain.nln()*domain.nt()*domain.nx()*2, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+     //}
+     
      return z;
  }
-
 
 
 Eigen::VectorXd Ras::solve(const SpMat& A, const SpMat& b, SolverTraits traits) {
