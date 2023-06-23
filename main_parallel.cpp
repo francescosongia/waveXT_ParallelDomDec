@@ -28,6 +28,13 @@ int main(int argc, char **argv) {
     m=6;
     // then with GetPot
 
+    /*
+    con questa versione ho creato localmatrices prima dividendo questo step dallo step del solver. va bene anche cosi. 
+    prima pensavo di farlo per non far fare a core 2 il solver ma in realtà deve farlo per forza. 
+    teniamo comunque questa versione, forse piu ordinata nella creazione delle local mat e gia subito posso decidere 
+    quali creare a seconda del rank in cui sono
+    */
+
     //NEXT
     // fare lo stesso per pipe
     // ognuno fa solo le sue local
