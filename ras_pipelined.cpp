@@ -38,6 +38,10 @@ Eigen::VectorXd RasPipelined::precondAction(const SpMat& x,SolverTraits traits) 
     solves_+=sub_in_zone.size();
 
     Eigen::VectorXd uk(domain.nln()*DataDD.sub_sizes()[0]*DataDD.sub_sizes()[1]*2);
+
+    // pensare a come fare intersezione tra subinzone e sub_divison_vec. Magari per pipe conviene definire 
+    // una divisione fissa (sopra sotto) in modo da riuscire a risalire facilmente a chi spetta quel sub. 
+    // anche in casi in cui la divisone non è perfetta so che ce una regola fissa su come assegnare
     for(unsigned int k:sub_in_zone){
         Eigen::SparseLU<SpMat > lu;
         lu.compute(local_mat.getAk(k));
@@ -58,6 +62,7 @@ unsigned int RasPipelined::check_sx(const Eigen::VectorXd& v, double tol_sx) {
     }
     unsigned int fail=0;
     Eigen::VectorXd res(domain.nln()*DataDD.sub_sizes()[0]*DataDD.sub_sizes()[1]*2);
+    // posso far fare questo controllo un po ad ognuno dei rank, da defnire però l'intersezione tra i e quello che il rank puo vedere
     for(size_t i=subt_sx_;i<=DataDD.nsub_t()*(DataDD.nsub_x()-1)+1;i+=DataDD.nsub_t()){
         res=local_mat.getRk(i).first*v;
         auto err= res.lpNorm<Eigen::Infinity>();
