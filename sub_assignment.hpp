@@ -15,6 +15,8 @@ public:
   // comunque si tratta solo di fornire una strategia per dividere i sub tra i vari core, potrei creare
   // costruttore che legge una matrice grande come domain diviso e ogni elemnto è un numero che identifica core
 
+  // con l'aggiunta di sub_division_Vec perde di importanza la matrice sub_division (che potrei pensare solo come 
+  // argomento per una versione di un costrcuttore). meglio salvarsi cosi un vector per ogni processore
 private:
   int np_;
   int nsub_x_;
