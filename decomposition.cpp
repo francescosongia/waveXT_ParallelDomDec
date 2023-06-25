@@ -15,6 +15,7 @@ void Decomposition::createDec(double n = -1, double m = -1) {
   }
   sub_sizes_[0] = n;
   sub_sizes_[1] = m;
+  std::cout<<"n: "<<n<<"  m: "<<m<<std::endl;
   // ora creo liste overlap e elem inizio
 
   // average ot,ox, rest

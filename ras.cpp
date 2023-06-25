@@ -1,7 +1,7 @@
 #include <iostream>
 #include "ras.hpp"
 #include <chrono>
-//#include <mpi.h>
+#include <mpi.h>
 
 
 // SEQUENTIAL
@@ -83,14 +83,14 @@ Eigen::VectorXd Ras::solve(const SpMat& A, const SpMat& b, SolverTraits traits) 
     }
 
     auto end = std::chrono::steady_clock::now();
-    int rank{0},size{0};
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
-    if(rank==0){
+    // int rank{0},size{0};
+    // MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    // MPI_Comm_size(MPI_COMM_WORLD, &size);
+    // if(rank==0){
     std::cout<<"niter: "<<niter<<std::endl;
     std::cout<<"solves: "<<niter*DataDD.nsub()<<std::endl;
     std::cout <<"time in seconds: "<< std::chrono::duration_cast<std::chrono::seconds>(end - start).count()<<std::endl;
-    }
+    //}
 
     return uw1;
 }

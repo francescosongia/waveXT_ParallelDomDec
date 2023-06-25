@@ -23,9 +23,9 @@ int main(int argc, char **argv) {
     nln=6;
 
     nsub_x=2; //3
-    nsub_t=4;
-    n=12;  //8
-    m=6;
+    nsub_t=10; //4
+    // n=12;  //8
+    // m=6;
     // then with GetPot
 
     /*
@@ -37,7 +37,7 @@ int main(int argc, char **argv) {
 
     //NEXT
     // fare lo stesso per pipe
-    // ognuno fa solo le sue local
+    // ognuno fa solo le sue local OK
     // aggiungo vettore ordinamento locale rk
     // gestire meglio np, rank. ParallelTraits
     // generica interfaccia sequantial vs parallel
@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
 
 
     Domain dom(nx, nt, X, T, nln);
-    Decomposition DataDD(dom, nsub_x, nsub_t,n,m);
+    Decomposition DataDD(dom, nsub_x, nsub_t);//,n,m);
     std::cout<<"Decomposition created"<<std::endl;
     std::string filenameA=R"(/home/scientific-vm/Desktop/projectPACS/A.txt)";
     std::string filenameb=R"(/home/scientific-vm/Desktop/projectPACS/b.txt)";

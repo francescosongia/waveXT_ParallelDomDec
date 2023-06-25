@@ -20,13 +20,13 @@ int main() {
     nln=6;
 
     nsub_x=2;
-    nsub_t=4;
-    n=12;
-    m=6;
+    nsub_t=10; //4;
+    // n=12;
+    // m=6;
     // then with GetPot
 
     Domain dom(nx, nt, X, T, nln);
-    Decomposition DataDD(dom, nsub_x, nsub_t,n,m);
+    Decomposition DataDD(dom, nsub_x, nsub_t);//,n,m);
     std::cout<<"Decomposition created"<<std::endl;
 
     std::string filenameA=R"(/home/scientific-vm/Desktop/projectPACS/A.txt)";

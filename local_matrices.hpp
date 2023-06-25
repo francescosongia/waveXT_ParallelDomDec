@@ -44,7 +44,7 @@ public:
 
 private:
   Domain domain;
-  Decomposition DataDD;
+  Decomposition DataDD; 
   std::vector<SpMat> R_;
   std::vector<SpMat> R_tilde_;
   std::vector<SpMat> localA_;

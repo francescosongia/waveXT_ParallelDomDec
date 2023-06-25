@@ -2,12 +2,13 @@
 #define SUB_ASSIGNMENT_HPP_
 
 #include "decomposition.hpp"
+#include <iostream>
 
 class SubAssignment {
 
 public:
   SubAssignment(int np, Decomposition dec)
-      : np_(np), nsub_x_(dec.nsub_x()), nsub_t_(dec.nsub_t()), sub_division_(np,dec.nsub_t())
+      : np_(np), nsub_x_(dec.nsub_x()), nsub_t_(dec.nsub_t()), sub_division_(np,dec.nsub_t()), sub_division_vec_(np)
       {this->createSubDivision();};
 
   //per ora assumiamo solo parallelizzazione in tempo, poi si puo fare i casi con strategie diverse
@@ -20,12 +21,14 @@ private:
   int nsub_t_;
 
   Eigen::MatrixXi sub_division_;
+  std::vector<Eigen::VectorXi> sub_division_vec_;
 
 public:
   auto np() const { return np_; };
   auto nsub_x() const { return nsub_x_; };
   auto nsub_t() const { return nsub_t_; };
   auto sub_division() const { return sub_division_; };
+  auto sub_division_vec() const { return sub_division_vec_; };
 
   void createSubDivision();
   

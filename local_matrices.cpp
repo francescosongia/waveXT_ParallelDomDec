@@ -56,23 +56,34 @@ std::pair<SpMat, SpMat> LocalMatrices::createRK(unsigned int k) {
 }
 
 void LocalMatrices::createRMatrices() {
-    if(sub_assignment_.np() == 0){
-        for(unsigned int k=1;k<DataDD.nsub()+1;++k){
-            std::pair<SpMat, SpMat> res= createRK(k);
-            R_[k-1]=res.first;
-            R_tilde_[k-1]=res.second;
-        }
-    }
-    else{
-        //leggere subsidivision
-        //auto sub_division = sub_assignment_.sub_division();
+    // if(sub_assignment_.np() == 0){
+    //     for(unsigned int k=1;k<DataDD.nsub()+1;++k){
+    //         std::pair<SpMat, SpMat> res= createRK(k);
+    //         R_[k-1]=res.first;
+    //         R_tilde_[k-1]=res.second;
+    //     }
+    // }
+    // else{
+    //     //leggere subsidivision
+    //     auto sub_division_vec = sub_assignment_.sub_division_vec()[current_rank];
+        
+    //     //for(unsigned int k=1;k<DataDD.nsub()+1;++k){
+    //     for(unsigned int k : sub_division_vec){
+    //         std::pair<SpMat, SpMat> res= createRK(k);
+    //         R_[k-1]=res.first;
+    //         R_tilde_[k-1]=res.second;
+    //     }
+    // }
 
-        for(unsigned int k=1;k<DataDD.nsub()+1;++k){
-            std::pair<SpMat, SpMat> res= createRK(k);
-            R_[k-1]=res.first;
-            R_tilde_[k-1]=res.second;
-        }
+    //leggere subsidivision
+    auto sub_division_vec = sub_assignment_.sub_division_vec()[current_rank];
+    //for(unsigned int k=1;k<DataDD.nsub()+1;++k){
+    for(unsigned int k : sub_division_vec){
+        std::pair<SpMat, SpMat> res= createRK(k);
+        R_[k-1]=res.first;
+        R_tilde_[k-1]=res.second;
     }
+    
 }
 
 std::pair<SpMat, SpMat> LocalMatrices::getRk(unsigned int k) const {
@@ -100,7 +111,9 @@ void LocalMatrices::createAlocal(const SpMat& A) {
     m = DataDD.sub_sizes()[1];
     n = DataDD.sub_sizes()[0];
     SpMat temp(nln*m*n*2,nln*nt*nx*2);
-    for(unsigned int k=1;k<DataDD.nsub()+1;++k){     
+    auto sub_division_vec = sub_assignment_.sub_division_vec()[current_rank];
+    for(unsigned int k : sub_division_vec){
+    //for(unsigned int k=1;k<DataDD.nsub()+1;++k){     
         temp=R_[k-1]*A;
         localA_[k-1]=temp*(R_[k-1].transpose());
     }
