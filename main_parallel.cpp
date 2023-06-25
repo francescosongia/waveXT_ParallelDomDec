@@ -40,7 +40,7 @@ int main(int argc, char **argv) {
     // ognuno fa solo le sue local OK
     // aggiungo vettore ordinamento locale rk
     // gestire meglio np, rank. ParallelTraits
-    // generica interfaccia sequantial vs parallel
+    // generica interfaccia sequantial vs parallel  OK IDEA CON ESEMPIO COMPARE POLICY
     // intraparallelization
     // postproccesing
 
