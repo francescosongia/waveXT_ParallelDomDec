@@ -40,7 +40,7 @@ int main() {
     double tol{1e-10};
     unsigned int max_it{50};
     SolverTraits traits(max_it,tol);
-    std::string method="RAS";
+    std::string method="PIPE";
     std::cout<<"method used: "<<method<<std::endl;
 
     int np = 0;

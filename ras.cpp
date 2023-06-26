@@ -31,15 +31,13 @@ Eigen::VectorXd Ras::precondAction(const SpMat& x) {
 // - prima prova: spezzo il for loop e assegno ai due rank la prima metà e poi l'altra
  Eigen::VectorXd Ras::precondAction(const SpMat& x) {
 
-     int rank{0},size{0};
-     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-     MPI_Comm_size(MPI_COMM_WORLD, &size);
-     unsigned int partition = DataDD.nsub() / size; // per ora assumo siano divisibili. sono sempre pari e uso 2 proc
+     
      Eigen::VectorXd z=Eigen::VectorXd::Zero(domain.nln()*domain.nt()*domain.nx()*2);
      Eigen::VectorXd uk(domain.nln()*DataDD.sub_sizes()[0]*DataDD.sub_sizes()[1]*2);
 
-     // questo for devo prendere i k giusti che vede quel core, mi appoggio su sub_assingment
-     for(unsigned int k = rank * partition+1; k<=rank * partition + partition;++k){
+    // questo for devo prendere i k giusti che vede quel core, mi appoggio su sub_assingment
+    auto sub_division_vec = local_mat.sub_assignment().sub_division_vec()[local_mat.rank()];
+    for(unsigned int k : sub_division_vec){    
         Eigen::SparseLU<SpMat > lu;
         lu.compute(local_mat.getAk(k));
         auto temp = local_mat.getRk(k);

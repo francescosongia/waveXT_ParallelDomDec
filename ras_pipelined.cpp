@@ -1,7 +1,12 @@
 #include <iostream>
 #include <chrono>
 #include "ras_pipelined.hpp"
+//#include "mpi.h"
 
+
+
+
+//SEQUENTIAL
 Eigen::VectorXd RasPipelined::precondAction(const SpMat& x,SolverTraits traits) {
     Eigen::VectorXd z=Eigen::VectorXd::Zero(domain.nln()*domain.nt()*domain.nx()*2);
     double tol_sx=traits.tol_pipe_sx();
@@ -25,15 +30,17 @@ Eigen::VectorXd RasPipelined::precondAction(const SpMat& x,SolverTraits traits) 
         }
         else if(f==0 and it_waited_<it_wait)
             it_waited_++;
-    }
+    } 
     // nsubt > = subt_sx+2 hypotesis
 
     unsigned int dx=subt_sx_+zone_;
 
     //set subs in the window
-    Eigen::VectorXi list=Eigen::VectorXi::LinSpaced(DataDD.nsub(),1,DataDD.nsub());
-    auto temp=list.transpose().reshaped(DataDD.nsub_t(),DataDD.nsub_x());
-    auto zonematrix=temp(Eigen::seq(subt_sx_-1,dx-2),Eigen::seq(0,temp.cols()-1));
+    // Eigen::VectorXi list=Eigen::VectorXi::LinSpaced(DataDD.nsub(),1,DataDD.nsub());
+    // auto temp=list.transpose().reshaped(DataDD.nsub_t(),DataDD.nsub_x());
+    // auto zonematrix=temp(Eigen::seq(subt_sx_-1,dx-2),Eigen::seq(0,temp.cols()-1));
+    
+    auto zonematrix=matrix_domain_(Eigen::seq(subt_sx_-1,dx-2),Eigen::seq(0,matrix_domain_.cols()-1));
     Eigen::VectorXi sub_in_zone=zonematrix.reshaped();
     solves_+=sub_in_zone.size();
 
@@ -44,7 +51,7 @@ Eigen::VectorXd RasPipelined::precondAction(const SpMat& x,SolverTraits traits) 
     // anche in casi in cui la divisone non è perfetta so che ce una regola fissa su come assegnare
 
     //aggiungere membro nella classe ras pipe pper tenere in mente la zona corrente e considero solo i sub 
-    //a cui posso accedere. va rinizializzata tutte le volte che inizio precondAction?
+    //a cui posso accedere. va rinizializzata tutte le volte che inizio precondAction? NO. 
     for(unsigned int k:sub_in_zone){
         Eigen::SparseLU<SpMat > lu;
         lu.compute(local_mat.getAk(k));
@@ -79,6 +86,98 @@ unsigned int RasPipelined::check_sx(const Eigen::VectorXd& v, double tol_sx) {
     return sx1;
 }
 
+
+/*
+
+
+//PARALLEL   
+Eigen::VectorXd RasPipelined::precondAction(const SpMat& x,SolverTraits traits) {
+    
+    int rank = local_mat.rank()
+
+    Eigen::VectorXd z=Eigen::VectorXd::Zero(domain.nln()*domain.nt()*domain.nx()*2);
+    double tol_sx=traits.tol_pipe_sx();
+    unsigned int it_wait=traits.it_wait();
+
+    unsigned int sx1= check_sx(x,tol_sx);
+    unsigned int f=0;
+    if (sx1 >subt_sx_ and sx1<=DataDD.nsub_t()){
+        subt_sx_=sx1;
+        zone_--;
+        f=1;
+    }
+    unsigned int isend= (zone_+subt_sx_ == DataDD.nsub_t()+1) ? 1 : 0;
+    if (isend==0 and zone_==0)
+        zone_++;
+    //update dx
+    if(isend==0){
+        if(it_waited_>=it_wait or (f==1 and it_waited_<it_wait)){
+            zone_++;
+            it_waited_=0;
+        }
+        else if(f==0 and it_waited_<it_wait)
+            it_waited_++;
+    } 
+    // nsubt > = subt_sx+2 hypotesis
+
+    unsigned int dx=subt_sx_+zone_;
+
+    //set subs in the window
+    // Eigen::VectorXi list=Eigen::VectorXi::LinSpaced(DataDD.nsub(),1,DataDD.nsub());
+    // auto temp=list.transpose().reshaped(DataDD.nsub_t(),DataDD.nsub_x());
+    // auto zonematrix=temp(Eigen::seq(subt_sx_-1,dx-2),Eigen::seq(0,temp.cols()-1));
+    
+    //da fare un linspace dentro per considerare solo chi è visto da rank !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    auto zonematrix=matrix_domain_(Eigen::seq(subt_sx_-1,dx-2),Eigen::seq(0,matrix_domain_.cols()-1));
+    Eigen::VectorXi sub_in_zone=zonematrix.reshaped();
+    solves_+=sub_in_zone.size();
+
+    Eigen::VectorXd uk(domain.nln()*DataDD.sub_sizes()[0]*DataDD.sub_sizes()[1]*2);
+
+    // pensare a come fare intersezione tra subinzone e sub_divison_vec. Magari per pipe conviene definire 
+    // una divisione fissa (sopra sotto) in modo da riuscire a risalire facilmente a chi spetta quel sub. 
+    // anche in casi in cui la divisone non è perfetta so che ce una regola fissa su come assegnare
+
+    //aggiungere membro nella classe ras pipe pper tenere in mente la zona corrente e considero solo i sub 
+    //a cui posso accedere. va rinizializzata tutte le volte che inizio precondAction? NO. 
+
+
+    for(unsigned int k:sub_in_zone){
+        Eigen::SparseLU<SpMat > lu;
+        lu.compute(local_mat.getAk(k));
+        auto temp = local_mat.getRk(k);
+        uk = lu.solve(temp.first*x);
+        z=z+(temp.second.transpose())*uk;
+    }
+
+    MPI_Allreduce(MPI_IN_PLACE, z.data(), domain.nln()*domain.nt()*domain.nx()*2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+    return z;
+}
+
+unsigned int RasPipelined::check_sx(const Eigen::VectorXd& v, double tol_sx) {
+    unsigned int sx1=subt_sx_;
+    if (subt_sx_>DataDD.nsub_t()){
+        std::cout<<subt_sx_<<std::endl;
+        std::cerr<<"err in the definiton of left edge of subdomain window"<<std::endl;
+        return 0;
+    }
+    unsigned int fail=0;
+    Eigen::VectorXd res(domain.nln()*DataDD.sub_sizes()[0]*DataDD.sub_sizes()[1]*2);
+    // posso far fare questo controllo un po ad ognuno dei rank, da defnire però l'intersezione tra i e quello che il rank puo vedere
+    for(size_t i=subt_sx_;i<=DataDD.nsub_t()*(DataDD.nsub_x()-1)+1;i+=DataDD.nsub_t()){
+        res=local_mat.getRk(i).first*v;
+        auto err= res.lpNorm<Eigen::Infinity>();
+        if(err>tol_sx){
+            fail=1;
+            break;
+        }
+    }
+    if(fail==0)
+        sx1++;
+    return sx1;
+}
+*/
 
 Eigen::VectorXd RasPipelined::solve(const SpMat& A, const SpMat& b, SolverTraits traits) {
     auto start = std::chrono::steady_clock::now();
