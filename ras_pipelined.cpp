@@ -42,6 +42,9 @@ Eigen::VectorXd RasPipelined::precondAction(const SpMat& x,SolverTraits traits) 
     // pensare a come fare intersezione tra subinzone e sub_divison_vec. Magari per pipe conviene definire 
     // una divisione fissa (sopra sotto) in modo da riuscire a risalire facilmente a chi spetta quel sub. 
     // anche in casi in cui la divisone non è perfetta so che ce una regola fissa su come assegnare
+
+    //aggiungere membro nella classe ras pipe pper tenere in mente la zona corrente e considero solo i sub 
+    //a cui posso accedere. va rinizializzata tutte le volte che inizio precondAction?
     for(unsigned int k:sub_in_zone){
         Eigen::SparseLU<SpMat > lu;
         lu.compute(local_mat.getAk(k));
