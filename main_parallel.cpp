@@ -36,11 +36,13 @@ int main(int argc, char **argv) {
     */
 
     //NEXT
-    // fare lo stesso per pipe
-    // ognuno fa solo le sue local OK
+    // fare lo stesso per pipe                      OK MA ASSUNZIONE (RAGIONEVOLE) NSUBX divisibile per NP
+    // ognuno fa solo le sue local                  OK
     // aggiungo vettore ordinamento locale rk
     // gestire meglio np, rank. ParallelTraits
     // generica interfaccia sequantial vs parallel  OK IDEA CON ESEMPIO COMPARE POLICY
+    // prova con problma piu grosso
+    // mettere mpi.h in include
     // intraparallelization
     // postproccesing
 
