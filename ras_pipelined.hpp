@@ -11,8 +11,8 @@ public:
   RasPipelined(Domain dom, const Decomposition& dec, LocalMatrices local_matrices) : 
                 DomainDecSolverBase(dom,dec,local_matrices),solves_(0),subt_sx_(1),zone_(2),it_waited_(0), matrix_domain_(dec.nsub_t(),dec.nsub_x())
                 {
-                  Eigen::VectorXi list=Eigen::VectorXi::LinSpaced(dec.nsub(),1,dec.nsub());
-                  matrix_domain_=list.transpose().reshaped(dec.nsub_t(),dec.nsub_x());
+                  Eigen::VectorXi list=Eigen::VectorXi::LinSpaced(dec.nsub(),1,dec.nsub());  
+                  matrix_domain_=list.transpose().reshaped(dec.nsub_t(),dec.nsub_x());  //serve traspose?
                 };
 
   Eigen::VectorXd solve(const SpMat& A, const SpMat& b, SolverTraits traits) override;
