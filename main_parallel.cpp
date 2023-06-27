@@ -64,7 +64,7 @@ int main(int argc, char **argv) {
     double tol{1e-10};
     unsigned int max_it{50};
     SolverTraits traits(max_it,tol);
-    std::string method="RAS";
+    std::string method="PIPE";
     std::cout<<"method used: "<<method<<", rank: "<<rank<<std::endl;
 
     LocalMatrices local_mat(dom, DataDD, A, np, rank);

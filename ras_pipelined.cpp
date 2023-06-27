@@ -1,11 +1,11 @@
 #include <iostream>
 #include <chrono>
 #include "ras_pipelined.hpp"
-//#include "mpi.h"
+#include "mpi.h"
 
 
 
-
+/*
 //SEQUENTIAL
 Eigen::VectorXd RasPipelined::precondAction(const SpMat& x,SolverTraits traits) {
     Eigen::VectorXd z=Eigen::VectorXd::Zero(domain.nln()*domain.nt()*domain.nx()*2);
@@ -87,13 +87,13 @@ unsigned int RasPipelined::check_sx(const Eigen::VectorXd& v, double tol_sx) {
 }
 
 
-/*
+*/
 
 
 //PARALLEL   
 Eigen::VectorXd RasPipelined::precondAction(const SpMat& x,SolverTraits traits) {
     
-    int rank = local_mat.rank()
+    int rank = local_mat.rank();
     int np = local_mat.sub_assignment().np();
     if(DataDD.nsub_x() % np != 0){
         std::cerr<<"sub_x not proportional to number of processes chosen"<<std::endl;
@@ -152,9 +152,7 @@ Eigen::VectorXd RasPipelined::precondAction(const SpMat& x,SolverTraits traits) 
         z=z+(temp.second.transpose())*uk;
     }
 
-    MPI_Allreduce(MPI_IN_PLACE, z.data(), domain.nln()*domain.nt()*domain.nx()*2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    MPI_Allreduce(MPI_IN_PLACE, solves_, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
-    
+    MPI_Allreduce(MPI_IN_PLACE, z.data(), domain.nln()*domain.nt()*domain.nx()*2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);   
     
     return z;
 }
@@ -163,7 +161,7 @@ unsigned int RasPipelined::check_sx(const Eigen::VectorXd& v, double tol_sx) {
     
     int np = local_mat.sub_assignment().np();
     int partition = DataDD.nsub_x() / np;  
-    int rank = local_mat.rank()
+    int rank = local_mat.rank();
     //questi tre valori perche devo calcolarli sempre? non sarebbe meglio metterli come membri (anche privati)
 
     unsigned int sx1=subt_sx_;
@@ -172,13 +170,13 @@ unsigned int RasPipelined::check_sx(const Eigen::VectorXd& v, double tol_sx) {
         std::cerr<<"err in the definiton of left edge of subdomain window"<<std::endl;
         return 0;
     }
-    unsigned int fail=0;
+    int fail=0;
     Eigen::VectorXd res(domain.nln()*DataDD.sub_sizes()[0]*DataDD.sub_sizes()[1]*2);
 
     // posso far fare questo controllo un po ad ognuno dei rank, da defnire però l'intersezione tra i e quello che il rank puo vedere
 
     //for(size_t i=subt_sx_;i<=DataDD.nsub_t()*(DataDD.nsub_x()-1)+1;i+=DataDD.nsub_t()){
-    for(size_t i=subt_sx_+DataDD.nsub_t()*partition*rank; i<=DataDD.nsub_t()*((rank+1)*partition)+1;i+=DataDD.nsub_t()){
+    for(size_t i=subt_sx_+DataDD.nsub_t()*partition*rank; i<=subt_sx_+DataDD.nsub_t()*partition*(rank +1)-1; i+=DataDD.nsub_t()){
         res=local_mat.getRk(i).first*v;
         auto err= res.lpNorm<Eigen::Infinity>();
         if(err>tol_sx){
@@ -187,11 +185,14 @@ unsigned int RasPipelined::check_sx(const Eigen::VectorXd& v, double tol_sx) {
         }
     }
     //pensarlo come allrduce
+    MPI_Allreduce(MPI_IN_PLACE, &fail, 1, MPI_INT, MPI_PROD, MPI_COMM_WORLD);
     if(fail==0)
         sx1++;
     return sx1;
 }
-*/
+
+
+
 
 Eigen::VectorXd RasPipelined::solve(const SpMat& A, const SpMat& b, SolverTraits traits) {
     auto start = std::chrono::steady_clock::now();
@@ -213,9 +214,9 @@ Eigen::VectorXd RasPipelined::solve(const SpMat& A, const SpMat& b, SolverTraits
         uw=uw+precondAction(b-A*uw,traits);
         resinf_vec.push_back(res);
         niter++;
-        solves_++;
 
     }
+    //MPI_Allreduce(MPI_IN_PLACE, &solves_, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
     auto end = std::chrono::steady_clock::now();
     std::cout<<"niter: "<<niter<<std::endl;
     std::cout<<"solves: "<<solves_<<std::endl;
