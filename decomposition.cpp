@@ -101,6 +101,16 @@ std::tuple<unsigned int, unsigned int, unsigned int,unsigned int,unsigned int> D
     return std::make_tuple(start_elem_[k], overlap_forw_(0,k), overlap_forw_(1,k),overlap_back_(0,k),overlap_back_(1,k));
 }
 
+std::vector<int> Decomposition::basic_info_decomposition() const{
+  std::vector<int> res(6);
+  res[0] = nsub_x_;
+  res[1] = nsub_t_;
+  res[2] = sub_sizes_[0];
+  res[3] = sub_sizes_[1];
+  res[4] = overlap_back_.row(0).maxCoeff();
+  res[5] = overlap_back_.row(1).maxCoeff();
+  return res;
+}
 
 /*
   // ot

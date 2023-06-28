@@ -60,6 +60,7 @@ public:
                             // decomposizione e crea m, n. Se dimensione
                             // genereica dovrei passare un vettore di int
   std::tuple<unsigned int, unsigned int, unsigned int,unsigned int,unsigned int> get_info_subK(unsigned int k) const;
+  std::vector<int> basic_info_decomposition() const;
 };
 
 #endif

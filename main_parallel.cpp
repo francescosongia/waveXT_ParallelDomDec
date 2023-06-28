@@ -16,6 +16,25 @@ int main(int argc, char **argv) {
     unsigned int nx,nt,nln,nsub_x,nsub_t;
     double X,T;
     int n,m;
+
+    /*
+    //20 100, x1t5
+    nx=20;
+    nt=100;
+    X=1;
+    T=5;
+    nln=6;
+
+    nsub_x=2; //3
+    nsub_t=20; //4
+    // n=12;  //8
+    // m=6;
+    std::string filenameA=R"(/home/scientific-vm/Desktop/projectPACS/A_1_5.txt)";
+    std::string filenameb=R"(/home/scientific-vm/Desktop/projectPACS/b_1_5.txt)";
+    //std::string filenameA=R"(C:\Users\franc\Desktop\pacsPROJECT_test\A.txt)";
+    //std::string filenameb=R"(C:\Users\franc\Desktop\pacsPROJECT_test\b.txt)";
+    */
+    
     nx=20;
     nt=20;
     X=1;
@@ -26,6 +45,12 @@ int main(int argc, char **argv) {
     nsub_t=10; //4
     // n=12;  //8
     // m=6;
+    std::string filenameA=R"(/home/scientific-vm/Desktop/projectPACS/A.txt)";
+    std::string filenameb=R"(/home/scientific-vm/Desktop/projectPACS/b.txt)";
+    //std::string filenameA=R"(C:\Users\franc\Desktop\pacsPROJECT_test\A.txt)";
+    //std::string filenameb=R"(C:\Users\franc\Desktop\pacsPROJECT_test\b.txt)";
+    
+
     // then with GetPot
 
     /*
@@ -40,9 +65,12 @@ int main(int argc, char **argv) {
     // ognuno fa solo le sue local                  OK
     // aggiungo vettore ordinamento locale rk
     // gestire meglio np, rank. ParallelTraits
+    // pensare se è necessario fare allreduce in precondAction
     // generica interfaccia sequantial vs parallel  OK IDEA CON ESEMPIO COMPARE POLICY
-    // prova con problma piu grosso
+    // prova con problma piu grosso                 OK PARALLEL ANCORA PIU LENTO
     // mettere mpi.h in include
+    // utlizzare solver_results come return in solve
+    // aggiungere const
     // intraparallelization
     // postproccesing
 
@@ -50,10 +78,7 @@ int main(int argc, char **argv) {
     Domain dom(nx, nt, X, T, nln);
     Decomposition DataDD(dom, nsub_x, nsub_t);//,n,m);
     std::cout<<"Decomposition created"<<std::endl;
-    std::string filenameA=R"(/home/scientific-vm/Desktop/projectPACS/A.txt)";
-    std::string filenameb=R"(/home/scientific-vm/Desktop/projectPACS/b.txt)";
-    //std::string filenameA=R"(C:\Users\franc\Desktop\pacsPROJECT_test\A.txt)";
-    //std::string filenameb=R"(C:\Users\franc\Desktop\pacsPROJECT_test\b.txt)";
+    
     MPI_Init(NULL,NULL);
     int rank{0},np{0};
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
