@@ -1,6 +1,6 @@
 PROJECT_ROOT=/home/scientific-vm/Desktop/projectPACS
 
-CPPFLAGS = -I $(PROJECT_ROOT)/
+CPPFLAGS = -I $(PROJECT_ROOT)/include/
 
 SRCS := $(wildcard ./*.cpp)
 FILE_SEQ := ./main.cpp
