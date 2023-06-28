@@ -194,7 +194,7 @@ unsigned int RasPipelined::check_sx(const Eigen::VectorXd& v, double tol_sx) {
 
 
 
-Eigen::VectorXd RasPipelined::solve(const SpMat& A, const SpMat& b, SolverTraits traits) {
+SolverResults RasPipelined::solve(const SpMat& A, const SpMat& b, SolverTraits traits) {
     auto start = std::chrono::steady_clock::now();
     double tol=traits.tol();
     //double tol_sx=traits.tol_pipe_sx();
@@ -220,12 +220,15 @@ Eigen::VectorXd RasPipelined::solve(const SpMat& A, const SpMat& b, SolverTraits
     auto end = std::chrono::steady_clock::now();
     std::cout<<"niter: "<<niter<<std::endl;
     std::cout<<"solves: "<<solves_<<std::endl;
-    std::cout <<"time in seconds: "<< std::chrono::duration_cast<std::chrono::seconds>(end - start).count()<<std::endl;
+    double time=std::chrono::duration_cast<std::chrono::seconds>(end - start).count();
+    std::cout <<"time in seconds: "<< time<<std::endl;
 
     solves_=0;
     subt_sx_=1;
     it_waited_=0;
     zone_=2;
 
-    return uw;
+    SolverResults res_obj(uw,solves_,time, traits, DataDD);
+
+    return res_obj;
 }

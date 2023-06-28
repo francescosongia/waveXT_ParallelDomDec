@@ -10,7 +10,7 @@ class Ras : public DomainDecSolverBase {
 public:
   Ras(Domain dom, const Decomposition& dec,const LocalMatrices local_matrices) : DomainDecSolverBase(dom,dec,local_matrices){};
 
-  Eigen::VectorXd solve(const SpMat& A, const SpMat& b, SolverTraits traits) override;
+  SolverResults solve(const SpMat& A, const SpMat& b, SolverTraits traits) override;
         //ritornare tupla con u,w,obj perf
 
 private:

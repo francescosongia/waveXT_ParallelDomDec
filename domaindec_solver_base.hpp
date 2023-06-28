@@ -6,6 +6,7 @@
 #include "sub_assignment.hpp"
 #include "local_matrices.hpp"
 #include "solver_traits.h"
+#include "solver_results.hpp"
 #include <Eigen/Sparse>
 #include <utility>
 #include <iostream>
@@ -21,7 +22,7 @@ public:
   domain(dom),DataDD(std::move(dec)),local_mat(std::move(local_matrices))
   {  };  //avoid copies with move, da capire!
 
-  virtual Eigen::VectorXd solve(const SpMat& A, const SpMat& b, SolverTraits traits) = 0;
+  virtual SolverResults solve(const SpMat& A, const SpMat& b, SolverTraits traits) = 0;  //Eigen::VectorXd
  
   virtual ~DomainDecSolverBase() = default;
 

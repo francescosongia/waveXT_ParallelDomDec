@@ -5,6 +5,7 @@
 #include "domaindec_solver_factory.hpp"
 #include "ras.hpp"
 #include "solver_traits.h"
+#include "solver_results.hpp"
 #include <iostream>
 #include <vector>
 #include "Eigen/Dense"
@@ -69,7 +70,7 @@ int main(int argc, char **argv) {
     // generica interfaccia sequantial vs parallel  OK IDEA CON ESEMPIO COMPARE POLICY
     // prova con problma piu grosso                 OK PARALLEL ANCORA PIU LENTO
     // mettere mpi.h in include
-    // utlizzare solver_results come return in solve
+    // utlizzare solver_results come return in solve OK
     // aggiungere const
     // intraparallelization
     // postproccesing
@@ -96,7 +97,8 @@ int main(int argc, char **argv) {
 
     LocalMatrices local_mat(dom, DataDD, A, np, rank);
     DomainDecSolverFactory solver(dom,DataDD,local_mat);
-    Eigen::VectorXd res=solver(method,A,b,traits);
+    SolverResults res_obj=solver(method,A,b,traits);
+    auto res = res_obj.getUW();
     if (rank==0){
     std::cout<<res(0)<<std::endl;
     //std::string f=R"(C:\Users\franc\Desktop\pacsPROJECT_test\u.txt)";

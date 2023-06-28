@@ -1,11 +1,11 @@
 #include "domaindec_solver_factory.hpp"
 #include <iostream>
-Eigen::VectorXd DomainDecSolverFactory::operator()(const std::string &method,const SpMat& A, const SpMat &b, SolverTraits traits) {
+SolverResults DomainDecSolverFactory::operator()(const std::string &method,const SpMat& A, const SpMat &b, SolverTraits traits) {
   auto method_ptr = createSolver(method, domain,DataDD,local_matrices); // each method obj is initialized with traits
 
   if (method_ptr == nullptr)
-    return Eigen::VectorXd::Zero(1);//std::numeric_limits<double>::quiet_NaN();
-
+    return SolverResults(Eigen::VectorXd::Zero(1),0,0,traits,DataDD);//std::numeric_limits<double>::quiet_NaN();
+    
   return method_ptr->solve(A,b,traits);
 }
 

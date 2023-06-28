@@ -15,7 +15,7 @@ public:
                   matrix_domain_=list.transpose().reshaped(dec.nsub_t(),dec.nsub_x());  //serve traspose?
                 };
 
-  Eigen::VectorXd solve(const SpMat& A, const SpMat& b, SolverTraits traits) override;
+  SolverResults solve(const SpMat& A, const SpMat& b, SolverTraits traits) override;
         //ritornare tupla con u,w,obj perf
 
 private:

@@ -58,7 +58,7 @@ Eigen::VectorXd Ras::precondAction(const SpMat& x) {
  }
 
 
-Eigen::VectorXd Ras::solve(const SpMat& A, const SpMat& b, SolverTraits traits) {
+SolverResults Ras::solve(const SpMat& A, const SpMat& b, SolverTraits traits) {
     auto start = std::chrono::steady_clock::now();
     double tol=traits.tol();
     unsigned int max_it=traits.max_it();
@@ -86,9 +86,12 @@ Eigen::VectorXd Ras::solve(const SpMat& A, const SpMat& b, SolverTraits traits) 
     // MPI_Comm_size(MPI_COMM_WORLD, &size);
     // if(rank==0){
     std::cout<<"niter: "<<niter<<std::endl;
-    std::cout<<"solves: "<<niter*DataDD.nsub()<<std::endl;
-    std::cout <<"time in seconds: "<< std::chrono::duration_cast<std::chrono::seconds>(end - start).count()<<std::endl;
+    unsigned int solves = niter*DataDD.nsub();
+    std::cout<<"solves: "<<solves<<std::endl;
+    double time = std::chrono::duration_cast<std::chrono::seconds>(end - start).count();
+    std::cout <<"time in seconds: "<< time<<std::endl;
     //}
+    SolverResults res_obj(uw1,solves,time, traits, DataDD);
 
-    return uw1;
+    return res_obj;
 }

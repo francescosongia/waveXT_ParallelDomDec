@@ -2,7 +2,7 @@
 #define SOLVERRESULTS_HPP_
 
 #include "decomposition.hpp"
-#include "solver_traits.hpp"
+#include "solver_traits.h"
 #include <iostream>
 
 class SolverResults {

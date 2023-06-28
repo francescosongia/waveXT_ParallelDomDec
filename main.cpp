@@ -4,6 +4,7 @@
 #include "domaindec_solver_factory.hpp"
 #include "ras.hpp"
 #include "solver_traits.h"
+#include "solver_results.hpp"
 #include <iostream>
 #include <vector>
 #include "Eigen/Dense"
@@ -69,7 +70,9 @@ int main() {
     int rank = 0;
     LocalMatrices local_mat(dom, DataDD, A, np, rank);
     DomainDecSolverFactory solver(dom,DataDD, local_mat);
-    Eigen::VectorXd res=solver(method,A,b,traits);
+    SolverResults res_obj=solver(method,A,b,traits);
+    auto res = res_obj.getUW();
+    //Eigen::VectorXd res=solver(method,A,b,traits);
     std::cout<<res(0)<<std::endl;
     std::string f=R"(/home/scientific-vm/Desktop/projectPACS/u.txt)";
     saveVec_totxt(f,res);
