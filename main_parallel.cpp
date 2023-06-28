@@ -10,13 +10,31 @@
 #include <vector>
 #include "Eigen/Dense"
 #include "exchange_txt.h"
+#include "GetPot"
 #include <mpi.h>
 //troppi include
 
 int main(int argc, char **argv) {
-    unsigned int nx,nt,nln,nsub_x,nsub_t;
-    double X,T;
-    int n,m;
+         // tramite Getpot leggo tutti i parametri utili per la risoluzione
+    GetPot command_line(argc, argv);
+    const std::string filename = command_line.follow("data", 2, "-f", "--file");
+    GetPot datafile(filename.c_str());
+
+    unsigned int nx = datafile("parameters/problem/nx", 20);
+    unsigned int nt = datafile("parameters/problem/nt", 20);
+    unsigned int nln = datafile("parameters/problem/nln", 6);
+    double X = datafile("parameters/problem/x", 1.);
+    double T = datafile("parameters/problem/t", 1.);
+
+    unsigned int nsub_x = datafile("parameters/decomposition/nsubx", 2);
+    unsigned int nsub_t = datafile("parameters/decomposition/nsubt", 3);
+    int n = datafile("parameters/decomposition/size_subx", 0);
+    int m = datafile("parameters/decomposition/size_subt", 0);
+
+    std::string test_matrices=datafile("file_matrices/test", "test1");
+    std::string filenameA = "//home//scientific-vm//Desktop//projectPACS//problem_matrices//"+test_matrices+"//A.txt";
+    std::string filenameb = "//home//scientific-vm//Desktop//projectPACS//problem_matrices//"+test_matrices+"//b.txt";
+
 
     /*
     //20 100, x1t5
@@ -34,7 +52,7 @@ int main(int argc, char **argv) {
     std::string filenameb=R"(/home/scientific-vm/Desktop/projectPACS/b_1_5.txt)";
     //std::string filenameA=R"(C:\Users\franc\Desktop\pacsPROJECT_test\A.txt)";
     //std::string filenameb=R"(C:\Users\franc\Desktop\pacsPROJECT_test\b.txt)";
-    */
+    
     
     nx=20;
     nt=20;
@@ -50,9 +68,7 @@ int main(int argc, char **argv) {
     std::string filenameb=R"(/home/scientific-vm/Desktop/projectPACS/b.txt)";
     //std::string filenameA=R"(C:\Users\franc\Desktop\pacsPROJECT_test\A.txt)";
     //std::string filenameb=R"(C:\Users\franc\Desktop\pacsPROJECT_test\b.txt)";
-    
-
-    // then with GetPot
+    */
 
     /*
     con questa versione ho creato localmatrices prima dividendo questo step dallo step del solver. va bene anche cosi. 
@@ -69,7 +85,7 @@ int main(int argc, char **argv) {
     // pensare se è necessario fare allreduce in precondAction
     // generica interfaccia sequantial vs parallel  OK IDEA CON ESEMPIO COMPARE POLICY
     // prova con problma piu grosso                 OK PARALLEL ANCORA PIU LENTO
-    // mettere mpi.h in include
+    // mettere mpi.h in include                     OK
     // utlizzare solver_results come return in solve OK
     // aggiungere const
     // intraparallelization
@@ -77,10 +93,12 @@ int main(int argc, char **argv) {
 
 
     Domain dom(nx, nt, X, T, nln);
-    Decomposition DataDD(dom, nsub_x, nsub_t);//,n,m);
+    Decomposition DataDD(dom, nsub_x, nsub_t);
     std::cout<<"Decomposition created"<<std::endl;
     
-    MPI_Init(NULL,NULL);
+    MPI_Init(&argc, &argv);
+    //MPI_Init(NULL,NULL);
+    
     int rank{0},np{0};
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &np);
@@ -92,7 +110,7 @@ int main(int argc, char **argv) {
     double tol{1e-10};
     unsigned int max_it{50};
     SolverTraits traits(max_it,tol);
-    std::string method="PIPE";
+    std::string method="RAS";
     std::cout<<"method used: "<<method<<", rank: "<<rank<<std::endl;
 
     LocalMatrices local_mat(dom, DataDD, A, np, rank);
