@@ -51,9 +51,9 @@ public:
   auto sub_sizes() const {return sub_sizes_;};
   auto theta() const { return theta_; };
   auto nsub() const { return nsub_t_ * nsub_x_; };
-  auto overlap_forw() {return overlap_forw_;};
-  auto overlap_back() {return overlap_back_;};
-  auto start_elem() {return start_elem_;};
+  auto overlap_forw() const {return overlap_forw_;};
+  auto overlap_back() const {return overlap_back_;};
+  auto start_elem() const {return start_elem_;};
 
 
   void createDec(double, double); // crea i vettori sopra, prima decide la

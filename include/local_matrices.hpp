@@ -38,9 +38,9 @@ public:
   std::pair<SpMat, SpMat> getRk(unsigned int k) const;
   SpMat getAk(unsigned int k) const;
 
-  auto localA_created() {return localA_created_;};
-  auto rank() {return current_rank;};
-  auto sub_assignment() {return sub_assignment_;};
+  auto localA_created() const {return localA_created_;};
+  auto rank() const {return current_rank;};
+  auto sub_assignment() const {return sub_assignment_;};
 
 private:
   Domain domain;

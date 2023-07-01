@@ -8,7 +8,7 @@
 class SolverResults {
 
 public:
-  SolverResults(Eigen::VectorXd uw, unsigned int solves, double time, SolverTraits straits, Decomposition dec)
+  SolverResults(const Eigen::VectorXd& uw, unsigned int solves, double time, const SolverTraits& straits, const Decomposition& dec)
       : uw_(uw), solves_(solves), time_(time), max_it_(straits.max_it()), tol_(straits.tol()), tol_pipe_sx_(straits.tol_pipe_sx()),
         it_wait_(straits.it_wait()), sub_sizes_(2), max_overlaps_(2)
       {

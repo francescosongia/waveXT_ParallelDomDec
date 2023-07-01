@@ -22,7 +22,7 @@ private:
 public:
   DomainDecSolverFactory(Domain dom,Decomposition dec, LocalMatrices local_mat) : domain(dom),DataDD(std::move(dec)), local_matrices(std::move(local_mat)){};
 
-  SolverResults operator()(const std::string &, const SpMat& A,const SpMat &b, SolverTraits traits);
+  SolverResults operator()(const std::string &, const SpMat& A,const SpMat &b, const SolverTraits& traits);
 
   template <typename... Args>
   std::unique_ptr<DomainDecSolverBase> createSolver(std::string const &name,

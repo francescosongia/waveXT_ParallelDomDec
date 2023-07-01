@@ -15,7 +15,7 @@ public:
                   matrix_domain_=list.transpose().reshaped(dec.nsub_t(),dec.nsub_x());  //serve traspose?
                 };
 
-  SolverResults solve(const SpMat& A, const SpMat& b, SolverTraits traits) override;
+  SolverResults solve(const SpMat& A, const SpMat& b, const SolverTraits& traits) override;
         //ritornare tupla con u,w,obj perf
 
 private:
@@ -25,7 +25,7 @@ private:
     unsigned int it_waited_;
     Eigen::MatrixXi matrix_domain_;
 
-    Eigen::VectorXd precondAction(const SpMat& x,SolverTraits traits);
+    Eigen::VectorXd precondAction(const SpMat& x, const SolverTraits& traits);
     unsigned int check_sx(const Eigen::VectorXd& v,double tol_sx);
 };
 

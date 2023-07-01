@@ -7,7 +7,7 @@
 class SubAssignment {
 
 public:
-  SubAssignment(int np, Decomposition dec)
+  SubAssignment(int np, const Decomposition& dec)
       : np_(np), nsub_x_(dec.nsub_x()), nsub_t_(dec.nsub_t()), sub_division_(np,dec.nsub_t()), sub_division_vec_(np)
       {this->createSubDivision();};
 

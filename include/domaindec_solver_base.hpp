@@ -22,7 +22,7 @@ public:
   domain(dom),DataDD(std::move(dec)),local_mat(std::move(local_matrices))
   {  };  //avoid copies with move, da capire!
 
-  virtual SolverResults solve(const SpMat& A, const SpMat& b, SolverTraits traits) = 0;  //Eigen::VectorXd
+  virtual SolverResults solve(const SpMat& A, const SpMat& b, const SolverTraits& traits) = 0;  //Eigen::VectorXd
  
   virtual ~DomainDecSolverBase() = default;
 

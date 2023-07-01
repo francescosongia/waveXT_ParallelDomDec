@@ -7,7 +7,7 @@
 
 /*
 //SEQUENTIAL
-Eigen::VectorXd RasPipelined::precondAction(const SpMat& x,SolverTraits traits) {
+Eigen::VectorXd RasPipelined::precondAction(const SpMat& x,const SolverTraits& traits) {
     Eigen::VectorXd z=Eigen::VectorXd::Zero(domain.nln()*domain.nt()*domain.nx()*2);
     double tol_sx=traits.tol_pipe_sx();
     unsigned int it_wait=traits.it_wait();
@@ -91,7 +91,7 @@ unsigned int RasPipelined::check_sx(const Eigen::VectorXd& v, double tol_sx) {
 
 
 //PARALLEL   
-Eigen::VectorXd RasPipelined::precondAction(const SpMat& x,SolverTraits traits) {
+Eigen::VectorXd RasPipelined::precondAction(const SpMat& x,const SolverTraits& traits) {
     
     int rank = local_mat.rank();
     int np = local_mat.sub_assignment().np();
@@ -194,7 +194,7 @@ unsigned int RasPipelined::check_sx(const Eigen::VectorXd& v, double tol_sx) {
 
 
 
-SolverResults RasPipelined::solve(const SpMat& A, const SpMat& b, SolverTraits traits) {
+SolverResults RasPipelined::solve(const SpMat& A, const SpMat& b, const SolverTraits& traits) {
     auto start = std::chrono::steady_clock::now();
     double tol=traits.tol();
     //double tol_sx=traits.tol_pipe_sx();
