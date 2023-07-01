@@ -1,6 +1,6 @@
 #include "domaindec_solver_factory.hpp"
 #include <iostream>
-SolverResults DomainDecSolverFactory::operator()(const std::string &method,const SpMat& A, const SpMat &b, SolverTraits traits) {
+SolverResults DomainDecSolverFactory::operator()(const std::string &method,const SpMat& A, const SpMat &b, const SolverTraits& traits) {
   auto method_ptr = createSolver(method, domain,DataDD,local_matrices); // each method obj is initialized with traits
 
   if (method_ptr == nullptr)
