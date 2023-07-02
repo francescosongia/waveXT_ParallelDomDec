@@ -80,14 +80,15 @@ int main(int argc, char **argv) {
     //NEXT
     // fare lo stesso per pipe                      OK MA ASSUNZIONE (RAGIONEVOLE) NSUBX divisibile per NP
     // ognuno fa solo le sue local                  OK
-    // aggiungo vettore ordinamento locale rk
+    // aggiungo vettore ordinamento locale rk       OK MA SOLO NEL CASO SUPER BASE CON PARALL SPAZIO E TUTTO DIVISIBILE
     // gestire meglio np, rank. ParallelTraits
     // pensare se è necessario fare allreduce in precondAction
     // generica interfaccia sequantial vs parallel  OK IDEA CON ESEMPIO COMPARE POLICY
     // prova con problma piu grosso                 OK PARALLEL ANCORA PIU LENTO
     // mettere mpi.h in include                     OK
     // utlizzare solver_results come return in solve OK
-    // aggiungere const
+    // aggiungere const                             OK  
+    // gestire altri modi di parallelizzare (matrice dei sub assegnati, caso in cui non sono divisibili)
     // intraparallelization
     // postproccesing
 

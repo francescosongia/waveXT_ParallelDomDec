@@ -72,7 +72,7 @@ void LocalMatrices::createRMatrices() {
 
     //leggere subsidivision
     auto sub_division_vec = sub_assignment_.sub_division_vec()[current_rank];
-    size_assigned = sub_division_vec_.size();
+    auto size_assigned = sub_division_vec.size();
  
     if(size_assigned < DataDD.nsub() && DataDD.nsub_x()%sub_assignment_.np() == 0){     
         // ## AND ## siamo nel caso parallelizz spazio in cui assegno sopra/sotto
@@ -80,10 +80,10 @@ void LocalMatrices::createRMatrices() {
         //Questo numeramento locale lo metto solo nel caso semplice in cui tutto è anche divisibile   
         local_numbering = true;
         R_.resize(size_assigned);
-        R_tilde.resize(size_assigned);
+        R_tilde_.resize(size_assigned);
         localA_.resize(size_assigned);
         for(unsigned int k : sub_division_vec){
-            auto k_local = k - current_rank_*size_assigned; 
+            auto k_local = k - current_rank*size_assigned; 
             std::pair<SpMat, SpMat> res= createRK(k);
             R_[k_local-1]=res.first;
             R_tilde_[k_local-1]=res.second;
