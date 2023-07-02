@@ -11,7 +11,7 @@ std::pair<SpMat, SpMat> LocalMatrices::createRK(unsigned int k) {
     n = DataDD.sub_sizes()[0];
     nt = domain.nt();
     nx = domain.nx();
-    nln = domain.nln();
+    nln = domain.nln(); 
     theta = DataDD.theta();
 
     Eigen::ArrayXi indexcol = Eigen::ArrayXi::Zero(nln*m*n*2);
@@ -55,38 +55,52 @@ std::pair<SpMat, SpMat> LocalMatrices::createRK(unsigned int k) {
 
 }
 
+/*
 void LocalMatrices::createRMatrices() {
-    // if(sub_assignment_.np() == 0){
-    //     for(unsigned int k=1;k<DataDD.nsub()+1;++k){
-    //         std::pair<SpMat, SpMat> res= createRK(k);
-    //         R_[k-1]=res.first;
-    //         R_tilde_[k-1]=res.second;
-    //     }
-    // }
-    // else{
-    //     //leggere subsidivision
-    //     auto sub_division_vec = sub_assignment_.sub_division_vec()[current_rank];
-        
-    //     //for(unsigned int k=1;k<DataDD.nsub()+1;++k){
-    //     for(unsigned int k : sub_division_vec){
-    //         std::pair<SpMat, SpMat> res= createRK(k);
-    //         R_[k-1]=res.first;
-    //         R_tilde_[k-1]=res.second;
-    //     }
-    // }
 
     //leggere subsidivision
     auto sub_division_vec = sub_assignment_.sub_division_vec()[current_rank];
-    //for(unsigned int k=1;k<DataDD.nsub()+1;++k){
     for(unsigned int k : sub_division_vec){
         std::pair<SpMat, SpMat> res= createRK(k);
         R_[k-1]=res.first;
         R_tilde_[k-1]=res.second;
+        }  
+}
+*/
+
+void LocalMatrices::createRMatrices() {
+
+    //leggere subsidivision
+    auto sub_division_vec = sub_assignment_.sub_division_vec()[current_rank];
+    size_assigned = sub_division_vec_.size();
+ 
+    if(size_assigned < DataDD.nsub() && DataDD.nsub_x()%sub_assignment_.np() == 0){     
+        // ## AND ## siamo nel caso parallelizz spazio in cui assegno sopra/sotto
+        // questo and lo aggiungo dopo se inserisco altra policy.
+        //Questo numeramento locale lo metto solo nel caso semplice in cui tutto è anche divisibile   
+        local_numbering = true;
+        R_.resize(size_assigned);
+        R_tilde.resize(size_assigned);
+        localA_.resize(size_assigned);
+        for(unsigned int k : sub_division_vec){
+            auto k_local = k - current_rank_*size_assigned; 
+            std::pair<SpMat, SpMat> res= createRK(k);
+            R_[k_local-1]=res.first;
+            R_tilde_[k_local-1]=res.second;
+            }  
     }
-    
+    else{
+        for(unsigned int k : sub_division_vec){
+            std::pair<SpMat, SpMat> res= createRK(k);
+            R_[k-1]=res.first;
+            R_tilde_[k-1]=res.second;
+            }
+    }
+     
 }
 
 std::pair<SpMat, SpMat> LocalMatrices::getRk(unsigned int k) const {
+    k = (local_numbering) ? k-current_rank*R_.size() : k;
     return std::make_pair(R_[k-1], R_tilde_[k-1]);
 }
 
@@ -99,8 +113,10 @@ SpMat LocalMatrices::getAk(unsigned int k) const{
         std::cerr << "local A not created" << std::endl;
         return {1, 1};
     }
-    else
+    else{
+        k = (local_numbering) ? k-current_rank*R_.size() : k;
         return localA_[k-1];
+    }
 }
 
 void LocalMatrices::createAlocal(const SpMat& A) {
@@ -114,6 +130,7 @@ void LocalMatrices::createAlocal(const SpMat& A) {
     auto sub_division_vec = sub_assignment_.sub_division_vec()[current_rank];
     for(unsigned int k : sub_division_vec){
     //for(unsigned int k=1;k<DataDD.nsub()+1;++k){     
+        k = (local_numbering) ? k-current_rank*R_.size() : k;
         temp=R_[k-1]*A;
         localA_[k-1]=temp*(R_[k-1].transpose());
     }

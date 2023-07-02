@@ -18,11 +18,13 @@ class LocalMatrices {
 public:
   LocalMatrices(Domain dom,Decomposition  dec,const SpMat& A, int np, int current_rank_=0) :
   domain(dom),DataDD(std::move(dec)),R_(DataDD.nsub()),R_tilde_(DataDD.nsub()), localA_(DataDD.nsub()),localA_created_(0),
-  sub_assignment_(SubAssignment(np,dec)),current_rank(current_rank_)
+  sub_assignment_(SubAssignment(np,dec)),current_rank(current_rank_),local_numbering(false)
   {
       this->createRMatrices();
       this->createAlocal(A);
-      std::cout<<"local matrices created"<<std::endl;
+      std::cout<<"local matrices created"<<std::endl; 
+      std::cout<<"size of R_: "<<R_.size()<<std::endl;
+
   };  //avoid copies with move, da capire!
 
  
@@ -51,6 +53,7 @@ private:
   int localA_created_;
   SubAssignment sub_assignment_;
   int current_rank;
+  bool local_numbering;
 
 
 
