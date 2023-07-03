@@ -32,6 +32,7 @@ int main(int argc, char **argv) {
     std::string test_matrices=datafile("file_matrices/test", "test1");
     std::string filenameA = "//home//scientific-vm//Desktop//projectPACS//problem_matrices//"+test_matrices+"//A.txt";
     std::string filenameb = "//home//scientific-vm//Desktop//projectPACS//problem_matrices//"+test_matrices+"//b.txt";
+    std::string filename_coord = "//home//scientific-vm//Desktop//projectPACS//problem_matrices//"+test_matrices+"//coord.txt";
     
     /*
     //20 100, x1t5
@@ -93,6 +94,8 @@ int main(int argc, char **argv) {
     std::cout<<res(0)<<std::endl;
     std::string f=R"(/home/scientific-vm/Desktop/projectPACS/u.txt)";
     saveVec_totxt(f,res);
+
+    res_obj.formatGNU(filename_coord,nx*nt,nln);
 
 
 /*

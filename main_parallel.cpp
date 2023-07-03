@@ -34,6 +34,7 @@ int main(int argc, char **argv) {
     std::string test_matrices=datafile("file_matrices/test", "test1");
     std::string filenameA = "//home//scientific-vm//Desktop//projectPACS//problem_matrices//"+test_matrices+"//A.txt";
     std::string filenameb = "//home//scientific-vm//Desktop//projectPACS//problem_matrices//"+test_matrices+"//b.txt";
+    std::string filename_coord = "//home//scientific-vm//Desktop//projectPACS//problem_matrices//"+test_matrices+"//coord.txt";
 
 
     /*
@@ -90,7 +91,7 @@ int main(int argc, char **argv) {
     // aggiungere const                             OK  
     // gestire altri modi di parallelizzare (matrice dei sub assegnati, caso in cui non sono divisibili)
     // intraparallelization
-    // postproccesing
+    // postproccesing                               FATTO GNUPLOT MA PLOTTA UGUALE U E W
 
 
     Domain dom(nx, nt, X, T, nln);
@@ -123,8 +124,12 @@ int main(int argc, char **argv) {
     //std::string f=R"(C:\Users\franc\Desktop\pacsPROJECT_test\u.txt)";
     std::string f=R"(/home/scientific-vm/Desktop/projectPACS/u.txt)";
     saveVec_totxt(f,res);
+
+    res_obj.formatGNU(filename_coord,nx*nt,nln);
     }
     MPI_Finalize();
+
+    
 
 
 /*
