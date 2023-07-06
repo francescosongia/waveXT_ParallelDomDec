@@ -47,7 +47,7 @@ public:
   //void getSolverInfo() const;
 
   //postprocessing functions to plot u,w 
-  void formatGNU(const std::string& coord_file, unsigned int n_elem, unsigned int nln) const;
+  void formatGNU(int uw_flag, const std::string& coord_file, unsigned int n_elem, unsigned int nln) const;
   
 
 };

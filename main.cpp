@@ -95,7 +95,8 @@ int main(int argc, char **argv) {
     std::string f=R"(/home/scientific-vm/Desktop/projectPACS/u.txt)";
     saveVec_totxt(f,res);
 
-    res_obj.formatGNU(filename_coord,nx*nt,nln);
+    res_obj.formatGNU(0,filename_coord,nx*nt,nln);
+    res_obj.formatGNU(1,filename_coord,nx*nt,nln);
 
 
 /*
