@@ -26,7 +26,7 @@ public:
       std::cout<<"size of R_: "<<R_.size()<<std::endl;
 
   };  //avoid copies with move, da capire!
-
+ 
  
   std::pair<SpMat, SpMat> createRK(unsigned int k);
   void createRMatrices();  

@@ -81,7 +81,7 @@ int main(int argc, char **argv) {
     double tol{1e-10};
     unsigned int max_it{50};
     SolverTraits traits(max_it,tol);
-    std::string method="PIPE";
+    std::string method="RAS";
     std::cout<<"method used: "<<method<<std::endl;
 
     int np = 0;

@@ -58,6 +58,8 @@ Eigen::VectorXd Ras::precondAction(const SpMat& x) {
  }
 
 
+
+
 SolverResults Ras::solve(const SpMat& A, const SpMat& b, const SolverTraits& traits) {
     auto start = std::chrono::steady_clock::now();
     double tol=traits.tol();
