@@ -1,0 +1,27 @@
+#-------------------------------------------------
+# Data file 
+#-------------------------------------------------
+[parameters]
+  [./problem]
+    nx    = 20
+    nt    = 20
+    x     = 1
+    t     = 1
+    nln   = 6
+  [../]
+  
+  [./decomposition]
+    nsubx = 2
+    nsubt = 10
+    size_subx = 0
+    size_subt = 0
+  [../]
+
+  [./traits]
+    method = PIPE
+  [../]
+	
+[../]
+
+[file_matrices]
+  test = test1
