@@ -19,7 +19,7 @@ int main(int argc, char **argv) {
     const std::string filename = command_line.follow("data", 2, "-f", "--file");
     GetPot datafile(filename.c_str());
 
-    std::string folder_root = "//home//scientific-vm//Desktop//projectPACS//";
+    std::string folder_root = "//home//scientific-vm//Desktop//branch_pacs//projectPACS//";
 
     unsigned int nx = datafile("parameters/problem/nx", 20);
     unsigned int nt = datafile("parameters/problem/nt", 20);
