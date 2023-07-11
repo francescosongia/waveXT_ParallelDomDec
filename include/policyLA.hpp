@@ -38,7 +38,7 @@ class SeqLA
 
 class ParLA {
   public:
-    void createSubDivision(){
+    void createSubDivision(int np_, int nsub_x_,int nsub_t_, Eigen::MatrixXi sub_division_, std::vector<Eigen::VectorXi> sub_division_vec_){
       std::cout<<"da fare"<<std::endl;
     };
 };
