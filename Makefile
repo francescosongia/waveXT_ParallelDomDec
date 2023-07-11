@@ -1,4 +1,4 @@
-PROJECT_ROOT=/home/scientific-vm/Desktop/pacs_primepolicy_nonfunziona_0607
+PROJECT_ROOT=/home/scientific-vm/Desktop/branch_pacs/projectPACS
 
 CPPFLAGS = -I $(PROJECT_ROOT)/include/
 

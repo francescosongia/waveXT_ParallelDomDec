@@ -1,5 +1,6 @@
 #include "domain.hpp"
 #include "decomposition.hpp"
+#include "policyLA.hpp"
 #include "domaindec_solver_base.hpp"
 #include "domaindec_solver_factory.hpp"
 #include "GetPot"

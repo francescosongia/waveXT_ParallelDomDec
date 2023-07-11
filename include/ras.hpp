@@ -9,13 +9,13 @@
 #include <iostream>
 
 
-template<class P>
-class Ras : public DomainDecSolverBase<P>{
+template<class P, class LA>
+class Ras : public DomainDecSolverBase<P,LA>{
 
 public:
 
-  Ras(Domain dom, const Decomposition& dec,const LocalMatrices local_matrices,const SolverTraits& traits) : 
-    DomainDecSolverBase<P>(dom,dec,local_matrices,traits)
+  Ras(Domain dom, const Decomposition& dec,const LocalMatrices<LA> local_matrices,const SolverTraits& traits) : 
+    DomainDecSolverBase<P,LA>(dom,dec,local_matrices,traits)
     {};
 
   SolverResults solve(const SpMat& A, const SpMat& b) override
@@ -37,13 +37,13 @@ protected:
 
 };
 
+ 
 
-
-class Parallel : public Ras<Parallel>
+class Parallel_SeqLA : public Ras<Parallel_SeqLA,SeqLA>
 {
   public:
-    Parallel(Domain dom, const Decomposition& dec,const LocalMatrices local_matrices,const SolverTraits& traits) :
-     Ras<Parallel>(dom,dec,local_matrices,traits) {};
+    Parallel_SeqLA(Domain dom, const Decomposition& dec,const LocalMatrices<SeqLA> local_matrices,const SolverTraits& traits) :
+     Ras<Parallel_SeqLA,SeqLA>(dom,dec,local_matrices,traits) {};
 
     Eigen::VectorXd 
     precondAction(const SpMat& x) 
@@ -109,11 +109,11 @@ class Parallel : public Ras<Parallel>
 };
 
 
-class Sequential : public Ras<Sequential>
+class Sequential : public Ras<Sequential,SeqLA>
 {
 public:
-  Sequential(Domain dom, const Decomposition& dec,const LocalMatrices local_matrices,const SolverTraits& traits) :
-   Ras<Sequential>(dom,dec,local_matrices,traits) {};
+  Sequential(Domain dom, const Decomposition& dec,const LocalMatrices<SeqLA> local_matrices,const SolverTraits& traits) :
+   Ras<Sequential,SeqLA>(dom,dec,local_matrices,traits) {};
   
   Eigen::VectorXd precondAction(const SpMat& x) 
   {
@@ -172,12 +172,12 @@ public:
 
 
 ////////
-/*
-class ParallelLA : public Ras<ParallelLA>
+
+class Parallel_ParLA : public Ras<Parallel_ParLA,ParLA>
 {
   public:
-    Parallel(Domain dom, const Decomposition& dec,const LocalMatrices local_matrices,const SolverTraits& traits) :
-     Ras<ParallelLA>(dom,dec,local_matrices,traits) {};
+    Parallel_ParLA(Domain dom, const Decomposition& dec,const LocalMatrices<ParLA> local_matrices,const SolverTraits& traits) :
+     Ras<Parallel_ParLA,ParLA>(dom,dec,local_matrices,traits) {};
 
     Eigen::VectorXd 
     precondAction(const SpMat& x) 
@@ -205,6 +205,7 @@ class ParallelLA : public Ras<ParallelLA>
       int rank{0},size{0};
       MPI_Comm_rank(MPI_COMM_WORLD, &rank);
       MPI_Comm_size(MPI_COMM_WORLD, &size);
+      // assumimao size divisibile per due
 
       auto start = std::chrono::steady_clock::now();
       double tol=this->traits_.tol();
@@ -218,8 +219,6 @@ class ParallelLA : public Ras<ParallelLA>
       Eigen::VectorXd uw1(this->domain.nln()*this->domain.nt()*this->domain.nx()*2);
 
       //scatter A, ottengo a_intraparallel_1_2
-
-
 
       Eigen::VectorXd z= precondAction(b); //b-A*uw0
       while(res>tol and niter<max_it){
@@ -247,7 +246,7 @@ class ParallelLA : public Ras<ParallelLA>
       return res_obj;
     };
 };
-*/
+
 
 
 #endif

@@ -9,21 +9,19 @@
 #include <string>
 #include <utility>
 
-template< class P>
+template< class P,class LA>
 class DomainDecSolverFactory {
-  /*
-  @operator(): calls the solver of the method passed by string
-  @createSolver(): creates a solver object and return an unique pointer to it
-  */
+  
 private:
   Domain domain;
   Decomposition DataDD;
-  LocalMatrices local_matrices;
+  LocalMatrices<LA> local_matrices;
   SolverTraits traits_;
 
 public:
-  DomainDecSolverFactory(Domain dom,Decomposition dec, LocalMatrices local_mat,const SolverTraits& traits) :
-       domain(dom),DataDD(std::move(dec)), local_matrices(std::move(local_mat)), traits_(traits)
+  
+  DomainDecSolverFactory(Domain dom,Decomposition dec, LocalMatrices<LA> local_mat,const SolverTraits& traits) :
+       domain(dom),DataDD(std::move(dec)), local_matrices(local_mat), traits_(traits)
        {};
 
   SolverResults operator()(const std::string& method, const SpMat& A,const SpMat &b){
@@ -36,13 +34,13 @@ public:
   };
 
   template <typename... Args>
-  std::unique_ptr<DomainDecSolverBase<P>> createSolver(std::string const &name,Args... args)
+  std::unique_ptr<DomainDecSolverBase<P,LA>> createSolver(std::string const &name,Args... args)
   {
     if (name == "RAS") {
-      return std::make_unique<Ras<P>>(std::forward<Args>(args)...);
+      return std::make_unique<Ras<P,LA>>(std::forward<Args>(args)...);
     }
     if(name == "PIPE")
-      return std::make_unique<RasPipelined<P>>(std::forward<Args>(args)...);
+      return std::make_unique<RasPipelined<P,LA>>(std::forward<Args>(args)...);
 
     return {nullptr};
   };

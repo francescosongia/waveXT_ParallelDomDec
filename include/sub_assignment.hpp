@@ -2,8 +2,10 @@
 #define SUB_ASSIGNMENT_HPP_
 
 #include "decomposition.hpp"
+#include "policyLA.hpp"
 #include <iostream>
 
+template<class LA>
 class SubAssignment {
 
 public:
@@ -32,8 +34,12 @@ public:
   auto sub_division() const { return sub_division_; };
   auto sub_division_vec() const { return sub_division_vec_; };
 
-  void createSubDivision();
+  void createSubDivision(){
+    LA func_wrapper;
+    return func_wrapper.createSubDivision(np_,nsub_x_,nsub_x_,sub_division_,sub_division_vec_);
+  };
   
 };
+
 
 #endif

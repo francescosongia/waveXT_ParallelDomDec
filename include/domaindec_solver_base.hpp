@@ -3,8 +3,9 @@
 
 #include "domain.hpp"
 #include "decomposition.hpp"
-#include "sub_assignment.hpp"
 #include "local_matrices.hpp"
+#include "sub_assignment.hpp"
+
 #include "solver_traits.h"
 #include "solver_results.hpp"
 #include <Eigen/Sparse>
@@ -17,11 +18,11 @@ typedef Eigen::SparseMatrix<double>
         SpMat; // declares a column-major sparse matrix type of double
 typedef Eigen::Triplet<double> T;
 
-template <class P>
+template <class P, class LA>
 class DomainDecSolverBase {
 
 public:
-  DomainDecSolverBase(Domain dom,Decomposition  dec, LocalMatrices local_matrices, const SolverTraits& traits) :
+  DomainDecSolverBase(Domain dom,Decomposition  dec, LocalMatrices<LA> local_matrices, const SolverTraits& traits) :
   domain(dom),DataDD(std::move(dec)),local_mat(std::move(local_matrices)), traits_(traits)
   {};  //avoid copies with move, da capire!
 
@@ -34,7 +35,7 @@ protected:
   
   Domain domain;
   Decomposition DataDD;
-  LocalMatrices local_mat;
+  LocalMatrices<LA> local_mat;
   SolverTraits traits_;
 };
 

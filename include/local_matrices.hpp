@@ -13,12 +13,13 @@ typedef Eigen::SparseMatrix<double>
         SpMat; // declares a column-major sparse matrix type of double
 typedef Eigen::Triplet<double> T;
 
+template<class LA>
 class LocalMatrices {
 
 public:
   LocalMatrices(Domain dom,Decomposition  dec,const SpMat& A, int np, int current_rank_=0) :
   domain(dom),DataDD(std::move(dec)),R_(DataDD.nsub()),R_tilde_(DataDD.nsub()), localA_(DataDD.nsub()),localA_created_(0),
-  sub_assignment_(SubAssignment(np,dec)),current_rank(current_rank_),local_numbering(false)
+  sub_assignment_(SubAssignment<LA>(np,dec)),current_rank(current_rank_),local_numbering(false)
   {
       this->createRMatrices();
       this->createAlocal(A);
@@ -51,7 +52,7 @@ private:
   std::vector<SpMat> R_tilde_;
   std::vector<SpMat> localA_;
   int localA_created_;
-  SubAssignment sub_assignment_;
+  SubAssignment<LA> sub_assignment_;
   int current_rank;
   bool local_numbering;
 

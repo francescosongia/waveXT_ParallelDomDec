@@ -2,7 +2,8 @@
 #include <iostream>
 #include <fstream>
 
-std::pair<SpMat, SpMat> LocalMatrices::createRK(unsigned int k) {
+template<class LA>
+std::pair<SpMat, SpMat> LocalMatrices<LA>::createRK(unsigned int k) {
     unsigned int start_elem,ox_forw,ot_forw,ox_back,ot_back;
     std::tie(start_elem,ox_forw,ot_forw,ox_back,ot_back) = DataDD.get_info_subK(k);
     unsigned int m,n,nt,nx,nln;
@@ -68,7 +69,8 @@ void LocalMatrices::createRMatrices() {
 }
 */
 
-void LocalMatrices::createRMatrices() {
+template<class LA>
+void LocalMatrices<LA>::createRMatrices() {
 
     //leggere subsidivision
     auto sub_division_vec = sub_assignment_.sub_division_vec()[current_rank];
@@ -99,12 +101,14 @@ void LocalMatrices::createRMatrices() {
      
 }
 
-std::pair<SpMat, SpMat> LocalMatrices::getRk(unsigned int k) const {
+template<class LA>
+std::pair<SpMat, SpMat> LocalMatrices<LA>::getRk(unsigned int k) const {
     k = (local_numbering) ? k-current_rank*R_.size() : k;
     return std::make_pair(R_[k-1], R_tilde_[k-1]);
 }
 
-SpMat LocalMatrices::getAk(unsigned int k) const{
+template<class LA>
+SpMat LocalMatrices<LA>::getAk(unsigned int k) const{
     if (k>DataDD.nsub()){
         std::cerr<<"k not valid"<<std::endl;
         return {1,1};
@@ -119,7 +123,8 @@ SpMat LocalMatrices::getAk(unsigned int k) const{
     }
 }
 
-void LocalMatrices::createAlocal(const SpMat& A) {
+template<class LA>
+void LocalMatrices<LA>::createAlocal(const SpMat& A) {
     unsigned int m,n,nt,nx,nln;
     nt = domain.nt();
     nx = domain.nx();

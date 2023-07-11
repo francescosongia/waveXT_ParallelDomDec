@@ -1,3 +1,4 @@
+#include "policyLA.hpp"
 #include "local_matrices.hpp"
 #include "domaindec_solver_factory.hpp"
 #include "solver_traits.h"
@@ -118,15 +119,30 @@ int main(int argc, char **argv) {
     //std::string method="RAS";
     std::cout<<"method used: "<<method<<", rank: "<<rank<<std::endl;
 
-    LocalMatrices local_mat(dom, DataDD, A, np, rank);
+    std::string la = "NOLA";  /////cambiare da utente
+    
+        
+
     SolverResults res_obj;
     
-    if (method == "RAS"){
-        DomainDecSolverFactory<Parallel> solver(dom,DataDD,local_mat,traits);
+    if (method == "RAS" and la == "LA"){
+        LocalMatrices<ParLA> local_mat(dom, DataDD, A, np, rank);
+        DomainDecSolverFactory<Parallel_ParLA,ParLA> solver(dom,DataDD,local_mat,traits);
         res_obj=solver(method,A,b);
     }
-    else {
-        DomainDecSolverFactory<PipeParallel> solver_pipe(dom,DataDD,local_mat,traits);
+    else if (method == "PIPE" and la == "LA") {
+        LocalMatrices<ParLA> local_mat(dom, DataDD, A, np, rank);
+        DomainDecSolverFactory<PipeParallel_ParLA,ParLA> solver_pipe(dom,DataDD,local_mat,traits);
+        res_obj=solver_pipe(method,A,b);
+    }
+    else if (method == "RAS" and la == "NOLA") {
+        LocalMatrices<SeqLA> local_mat(dom, DataDD, A, np, rank);
+        DomainDecSolverFactory<Parallel_SeqLA,SeqLA> solver_pipe(dom,DataDD,local_mat,traits);
+        res_obj=solver_pipe(method,A,b);
+    }
+    else{// if (method == "PIPE" and la == "NOLA") {
+        LocalMatrices<SeqLA> local_mat(dom, DataDD, A, np, rank);
+        DomainDecSolverFactory<PipeParallel_SeqLA,SeqLA> solver_pipe(dom,DataDD,local_mat,traits);
         res_obj=solver_pipe(method,A,b);
     }
 

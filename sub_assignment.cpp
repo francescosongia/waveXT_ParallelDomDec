@@ -1,10 +1,12 @@
 #include "sub_assignment.hpp"
 #include <iostream>
-
-
-void SubAssignment::createSubDivision() {
+/*
+template<class LA>
+void SubAssignment<LA>::createSubDivision() {
   // np vs subx
-  if (np_ == nsub_x_){
+
+  
+  if (np_ == nsub_x_){  //metterci divisibile per nsubx
     for(int i=0; i< np_; ++i){
       auto temp = Eigen::VectorXi::LinSpaced(nsub_t_, nsub_t_*i + 1, nsub_t_*(i+1)) ;
       sub_division_vec_[i] = temp;
@@ -26,4 +28,5 @@ void SubAssignment::createSubDivision() {
   // - se nsubx non è divisibile per np, allora assegno i mancanti in qualche modo (tutti all'ultimo, oppure iterando e assegnando un po a tutti)
   // - se np è maggiore di nsubx, messaggio che dice che sarebbe meglio usare parallelizzazione con aiutanti (intra)
  
-} 
+}
+*/ 
