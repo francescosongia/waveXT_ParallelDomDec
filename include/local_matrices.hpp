@@ -23,7 +23,8 @@ private:
   std::vector<SpMat> R_tilde_;
   std::vector<SpMat> localA_;
   int localA_created_;
-  int current_rank;
+  int current_rank_;
+  int rank_group_la_;
   bool local_numbering;
   LA sub_assignment_;
   
@@ -89,10 +90,10 @@ private:
     m = this->DataDD.sub_sizes()[1];
     n = this->DataDD.sub_sizes()[0];
     SpMat temp(nln*m*n*2,nln*nt*nx*2);
-    auto sub_division_vec = this->sub_assignment_.sub_division_vec()[this->current_rank];
+    auto sub_division_vec = this->sub_assignment_.sub_division_vec()[this->current_rank_];
     for(unsigned int k : sub_division_vec){
     //for(unsigned int k=1;k<DataDD.nsub()+1;++k){     
-        k = (this->local_numbering) ? k-this->current_rank*this->R_.size() : k;
+        k = (this->local_numbering) ? k-this->rank_group_la_*this->R_.size() : k;
         temp=this->R_[k-1]*A;
         this->localA_[k-1]=temp*(this->R_[k-1].transpose());
     }
@@ -105,11 +106,13 @@ private:
 
 public:
 
-  LocalMatrices(Domain dom,Decomposition  dec,const SpMat& A, int np, int current_rank_=0) :
-  domain(dom),DataDD(std::move(dec)),R_(DataDD.nsub()),R_tilde_(DataDD.nsub()), localA_(DataDD.nsub()),localA_created_(0),
-  current_rank(current_rank_),local_numbering(false), sub_assignment_(LA(np,DataDD.nsub_x(),DataDD.nsub_t()))
-  {
-      
+  LocalMatrices(Domain dom,Decomposition  dec,const SpMat& A, int np, int current_rank=0) :
+    domain(dom),DataDD(std::move(dec)),R_(DataDD.nsub()),R_tilde_(DataDD.nsub()), localA_(DataDD.nsub()),localA_created_(0),
+    current_rank_(current_rank),rank_group_la_(current_rank),local_numbering(false), 
+    sub_assignment_(LA(np,DataDD.nsub_x(),DataDD.nsub_t()))
+  {   
+      if(np/DataDD.nsub_x() > 0)
+        this->rank_group_la_ = current_rank_%(np/DataDD.nsub_x());
       this->sub_assignment_.createSubDivision();
       this->createRMatrices();
       this->createAlocal(A);
@@ -121,9 +124,9 @@ public:
 
   void createRMatrices()
   {
-    auto sub_division_vec = this->sub_assignment_.sub_division_vec()[this->current_rank];
+    auto sub_division_vec = this->sub_assignment_.sub_division_vec()[this->current_rank_];
     auto size_assigned = sub_division_vec.size();
-    if(size_assigned < this->DataDD.nsub() && this->DataDD.nsub_x()%this->sub_assignment_.np() == 0){     
+    if(size_assigned < this->DataDD.nsub()){     
         // ## AND ## siamo nel caso parallelizz spazio in cui assegno sopra/sotto
         // questo and lo aggiungo dopo se inserisco altra policy.
         //Questo numeramento locale lo metto solo nel caso semplice in cui tutto è anche divisibile   
@@ -132,7 +135,8 @@ public:
         this->R_tilde_.resize(size_assigned);
         this->localA_.resize(size_assigned);
         for(unsigned int k : sub_division_vec){
-            auto k_local = k - this->current_rank*size_assigned; 
+            //auto k_local = k - this->current_rank_*size_assigned; 
+            auto k_local = k - this->rank_group_la_*size_assigned; 
             std::pair<SpMat, SpMat> res= this->createRK(k);
             this->R_[k_local-1]=res.first;
             this->R_tilde_[k_local-1]=res.second;
@@ -149,7 +153,7 @@ public:
 
   std::pair<SpMat, SpMat> getRk(unsigned int k) const
   {
-    k = (this->local_numbering) ? k-this->current_rank*this->R_.size() : k;
+    k = (this->local_numbering) ? k-this->rank_group_la_*this->R_.size() : k;
     return std::make_pair(this->R_[k-1], this->R_tilde_[k-1]);
   };
 
@@ -166,13 +170,13 @@ public:
         return {1, 1};
     }
     else{
-        k = (this->local_numbering) ? k-this->current_rank*this->R_.size() : k;
+        k = (this->local_numbering) ? k-this->rank_group_la_*this->R_.size() : k;
         return this->localA_[k-1];
     }
   };
 
   auto localA_created() const {return localA_created_;};
-  auto rank() const {return current_rank;};
+  auto rank() const {return current_rank_;};
   auto sub_assignment() const {return sub_assignment_;};
 
 

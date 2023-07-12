@@ -16,7 +16,7 @@ public:
 
   SubAssignment(int nproc, unsigned int nsubx,unsigned int nsubt)
       : np_(nproc), nsub_x_(nsubx), nsub_t_(nsubt), sub_division_(nproc,nsubt), sub_division_vec_(nproc)
-      {};
+      {};   //IF GRANDE SE NON SONO DIVISIBILI DI BLOCCARSI PRIMA
 
   //per ora assumiamo solo parallelizzazione in tempo, poi si puo fare i casi con strategie diverse
   // comunque si tratta solo di fornire una strategia per dividere i sub tra i vari core, potrei creare
@@ -44,24 +44,28 @@ public:
     LA func_wrapper(this->np_,this->nsub_x_,this->nsub_t_);
     return func_wrapper.createSubDivision();
   };
-  
-};
 
+};
 
 
 class SeqLA : public SubAssignment<SeqLA>
 {
   public:
     SeqLA(int nproc, unsigned int nsubx,unsigned int nsubt):
-     SubAssignment<SeqLA>(nproc,nsubx,nsubt){};
-
+     SubAssignment<SeqLA>(nproc,nsubx,nsubt)
+     {
+        this->sub_division_.resize(nproc,(nsubx/nproc)*nsubt);
+     };
     void createSubDivision()
-    {
-      if (this->np_ == this->nsub_x_){  //metterci divisibile per nsubx
+    { //4subx 2 np
+      int partition{0};
+      partition = this->nsub_x_/ this->np_;
+
+      if (this->nsub_x_% this->np_ ==0){  //this->np_ == this->nsub_x_
         for(int i=0; i< this->np_; ++i){
-          auto temp = Eigen::VectorXi::LinSpaced(this->nsub_t_, this->nsub_t_*i + 1, this->nsub_t_*(i+1)) ;
+          auto temp = Eigen::VectorXi::LinSpaced(this->nsub_t_*partition, this->nsub_t_*partition*i + 1, this->nsub_t_*partition*(i+1)) ;
           this->sub_division_vec_[i] = temp;
-          this->sub_division_(i,Eigen::seq(0,this->nsub_t_-1)) = temp;
+          this->sub_division_(i,Eigen::seq(0,this->nsub_t_*partition-1)) = temp;
         }
       }
       else if(this->np_ == 0){
@@ -71,7 +75,7 @@ class SeqLA : public SubAssignment<SeqLA>
         
       }
       else{
-        std::cerr<<"error in subs division among processes"<<std::endl;
+        std::cerr<<"error in subs division among processes_ sub_ass"<<std::endl;
       }
 
 
@@ -79,14 +83,39 @@ class SeqLA : public SubAssignment<SeqLA>
 };
 
 
+
+
+// 2proc  2subx   -> SeqLA
+
 class ParLA : public SubAssignment<ParLA>
 {
   public:
-    ParLA(int nproc, unsigned int nsubx,unsigned int nsubt): SubAssignment<ParLA>(nproc,nsubx,nsubt) {};
+    ParLA(int nproc, unsigned int nsubx,unsigned int nsubt): SubAssignment<ParLA>(nproc,nsubx,nsubt) 
+    {};
+
     void createSubDivision()
     {
-      std::cout<<"da fare"<<std::endl;
+      // 4 process e 2 subx. quindi due proc sono i principali e hanno due aiutanti
+      int partition{0};
+      partition = this->np_ / this->nsub_x_ ;  //quanti p sono assegnati a striscia temp
+      int i_group_la{0};
+
+      if (this->np_% this->nsub_x_ == 0){  
+        for(int i=0; i< this->np_; ++i){
+          i_group_la = i % partition;
+          auto temp = Eigen::VectorXi::LinSpaced(this->nsub_t_, this->nsub_t_*i_group_la + 1, this->nsub_t_*(i_group_la+1)) ;
+          this->sub_division_vec_[i] = temp;
+          this->sub_division_(i,Eigen::seq(0,this->nsub_t_-1)) = temp;
+        }
+        std::cout<<"matrix subdivision"<<std::endl;
+        std::cout<<sub_division_<<std::endl;
+      }
+      else{
+        std::cerr<<"error in subs division among processes"<<std::endl;
+      }
     };
+
+
 };
 
 

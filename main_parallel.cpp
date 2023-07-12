@@ -30,6 +30,7 @@ int main(int argc, char **argv) {
     int m = datafile("parameters/decomposition/size_subt", 0);
 
     std::string method= datafile("parameters/traits/method", "RAS");
+    std::string la= datafile("parameters/traits/linear_algebra", "SeqLA");
 
     std::string test_matrices=datafile("file_matrices/test", "test1");
     std::string filenameA = folder_root+"problem_matrices//"+test_matrices+"//A.txt";
@@ -118,28 +119,27 @@ int main(int argc, char **argv) {
     //std::string method="RAS";
     std::cout<<"method used: "<<method<<", rank: "<<rank<<std::endl;
 
-    std::string la = "NOLA";  /////cambiare da utente
-    
+    std::cout<<"LA policy used: "<<la<<", rank: "<<rank<<std::endl;    
         
 
     SolverResults res_obj;
     
-    if (method == "RAS" && la == "LA"){
+    if (method == "RAS" && la == "ParLA"){
         LocalMatrices<ParLA> local_mat(dom, DataDD, A, np, rank);
         DomainDecSolverFactory<Parallel_ParLA,ParLA> solver(dom,DataDD,local_mat,traits);
         res_obj=solver(method,A,b);
     }
-    else if (method == "PIPE" && la == "LA") {
+    else if (method == "PIPE" && la == "ParLA") {
         LocalMatrices<ParLA> local_mat(dom, DataDD, A, np, rank);
         DomainDecSolverFactory<PipeParallel_ParLA,ParLA> solver_pipe(dom,DataDD,local_mat,traits);
         res_obj=solver_pipe(method,A,b);
     }
-    else if (method == "RAS" && la == "NOLA") {
+    else if (method == "RAS" && la == "SeqLA") {
         LocalMatrices<SeqLA> local_mat(dom, DataDD, A, np, rank);
         DomainDecSolverFactory<Parallel_SeqLA,SeqLA> solver_pipe(dom,DataDD,local_mat,traits);
         res_obj=solver_pipe(method,A,b);
     }
-    else{// if (method == "PIPE" and la == "NOLA") {
+    else{// if (method == "PIPE" and la == "SeqLA") {
         LocalMatrices<SeqLA> local_mat(dom, DataDD, A, np, rank);
         DomainDecSolverFactory<PipeParallel_SeqLA,SeqLA> solver_pipe(dom,DataDD,local_mat,traits);
         res_obj=solver_pipe(method,A,b);

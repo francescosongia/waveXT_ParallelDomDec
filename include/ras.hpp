@@ -180,7 +180,11 @@ class Parallel_ParLA : public Ras<Parallel_ParLA,ParLA>
     Eigen::VectorXd 
     precondAction(const SpMat& x) 
     {
+      int rank{0},np{0};
+      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+      MPI_Comm_size(MPI_COMM_WORLD, &np);
       Eigen::VectorXd z=Eigen::VectorXd::Zero(domain.nln()*domain.nt()*domain.nx()*2);
+      Eigen::VectorXd zero=Eigen::VectorXd::Zero(domain.nln()*domain.nt()*domain.nx()*2);
       Eigen::VectorXd uk(domain.nln()*DataDD.sub_sizes()[0]*DataDD.sub_sizes()[1]*2);
 
       // questo for devo prendere i k giusti che vede quel core, mi appoggio su sub_assingment
@@ -193,7 +197,14 @@ class Parallel_ParLA : public Ras<Parallel_ParLA,ParLA>
           z=z+(temp.second.transpose())*uk;
           }
 
-      MPI_Allreduce(MPI_IN_PLACE, z.data(), domain.nln()*domain.nt()*domain.nx()*2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+      int partition{0};
+      partition = np / this->DataDD.nsub_x() ;  //quanti p sono assegnati a striscia temp
+      if(rank<partition)
+        MPI_Allreduce(MPI_IN_PLACE, z.data(), domain.nln()*domain.nt()*domain.nx()*2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+      else
+        MPI_Allreduce(zero.data(), z.data(), domain.nln()*domain.nt()*domain.nx()*2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+        // zero è brutto, in alternativa fare all reduce + waitall per far conoscere a 0 e 1, e poi fare bcast per far conoscere 2 3
+
       return z;
     }
 
@@ -203,7 +214,6 @@ class Parallel_ParLA : public Ras<Parallel_ParLA,ParLA>
       int rank{0},size{0};
       MPI_Comm_rank(MPI_COMM_WORLD, &rank);
       MPI_Comm_size(MPI_COMM_WORLD, &size);
-      // assumimao size divisibile per due
 
       auto start = std::chrono::steady_clock::now();
       double tol=this->traits_.tol();
@@ -213,15 +223,37 @@ class Parallel_ParLA : public Ras<Parallel_ParLA,ParLA>
       unsigned int niter=0;
       double Pb2=precondAction(b).norm();
 
-      Eigen::VectorXd uw0=Eigen::VectorXd::Zero(this->domain.nln()*this->domain.nt()*this->domain.nx()*2);
-      Eigen::VectorXd uw1(this->domain.nln()*this->domain.nt()*this->domain.nx()*2);
+      int dim_res{static_cast<int>(this->domain.nln()*this->domain.nt()*this->domain.nx()*2)};
 
-      //scatter A, ottengo a_intraparallel_1_2
+      
+      std::vector<int> dim_local_res_vec{0};
+      std::vector<int> dim_cum_vec{0};
+
+      for(int i=0;i<size;++i){
+        dim_local_res_vec[i] = dim_res/size + (i< (dim_res % size));
+        if(i!=0)
+          dim_cum_vec[i] = dim_local_res_vec[i-1] + dim_cum_vec[i-1];
+      }
+      
+      Eigen::VectorXd uw0=Eigen::VectorXd::Zero(dim_res);
+      Eigen::VectorXd uw1(dim_res);
+
+      Eigen::VectorXd prod(dim_res);
+      Eigen::VectorXd local_prod(dim_local_res_vec[rank]);
 
       Eigen::VectorXd z= precondAction(b); //b-A*uw0
       while(res>tol and niter<max_it){
           uw1=uw0+z;  //forse si puo evitare l'uso di entrambi uw0 e uw1
-          z= precondAction(b-A*uw1);
+
+          // parallelo A*uw1
+          //popoliamo local_prod          
+          local_prod =  A.middleRows(dim_cum_vec[rank], dim_local_res_vec[rank])* uw1;
+
+          //gatherv di prod
+          MPI_Allgatherv (local_prod.data(), dim_local_res_vec[rank], MPI_DOUBLE, prod.data(), dim_local_res_vec.data(), 
+                      dim_cum_vec.data(), MPI_DOUBLE, MPI_COMM_WORLD);
+
+          z= precondAction(b-prod);          
           res=(z/Pb2).norm();
           relres2P_vec.push_back(res);
           niter++;
