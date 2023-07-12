@@ -4,8 +4,6 @@
 #include <utility>
 
 #include "domaindec_solver_base.hpp"
-//#include "function_policied.hpp"
-//#include "policies.hpp"
 
 template<class P,class LA>
 class RasPipelined : public DomainDecSolverBase<P,LA> {

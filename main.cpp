@@ -1,6 +1,5 @@
 #include "domain.hpp"
 #include "decomposition.hpp"
-#include "policyLA.hpp"
 #include "domaindec_solver_base.hpp"
 #include "domaindec_solver_factory.hpp"
 #include "GetPot"
@@ -92,14 +91,18 @@ int main(int argc, char **argv) {
 
     int np = 0;
     int rank = 0;
-    LocalMatrices local_mat(dom, DataDD, A, np, rank);
+
+    std::string la = "NOLA";
+
+
+    LocalMatrices<SeqLA> local_mat(dom, DataDD, A, np, rank);
     SolverResults res_obj;
     if (method == "RAS"){
-        DomainDecSolverFactory<Sequential> solver(dom,DataDD, local_mat,traits);
+        DomainDecSolverFactory<Sequential,SeqLA> solver(dom,DataDD, local_mat,traits);
         res_obj=solver(method,A,b);
     }
     else{
-        DomainDecSolverFactory<PipeSequential> solver(dom,DataDD, local_mat,traits);
+        DomainDecSolverFactory<PipeSequential,SeqLA> solver(dom,DataDD, local_mat,traits);
         res_obj=solver(method,A,b);
     }
 

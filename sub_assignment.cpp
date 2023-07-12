@@ -1,6 +1,7 @@
+/*
 #include "sub_assignment.hpp"
 #include <iostream>
-/*
+
 template<class LA>
 void SubAssignment<LA>::createSubDivision() {
   // np vs subx
