@@ -11,7 +11,8 @@
 //troppi include
 
 int main(int argc, char **argv) {
-         // tramite Getpot leggo tutti i parametri utili per la risoluzione
+         
+
     GetPot command_line(argc, argv);
     const std::string filename = command_line.follow("data", 2, "-f", "--file");
     GetPot datafile(filename.c_str());

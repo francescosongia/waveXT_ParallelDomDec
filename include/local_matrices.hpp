@@ -103,7 +103,6 @@ private:
   
  
 
-
 public:
 
   LocalMatrices(Domain dom,Decomposition  dec,const SpMat& A, int np, int current_rank=0) :
@@ -111,8 +110,10 @@ public:
     current_rank_(current_rank),rank_group_la_(current_rank),local_numbering(false), 
     sub_assignment_(LA(np,DataDD.nsub_x(),DataDD.nsub_t()))
   {   
-      if(np/DataDD.nsub_x() > 0)
+      
+      if(np/DataDD.nsub_x() > 1)
         this->rank_group_la_ = current_rank_%(np/DataDD.nsub_x());
+      
       this->sub_assignment_.createSubDivision();
       this->createRMatrices();
       this->createAlocal(A);

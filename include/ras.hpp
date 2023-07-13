@@ -184,8 +184,9 @@ class Parallel_ParLA : public Ras<Parallel_ParLA,ParLA>
   public:
     Parallel_ParLA(Domain dom, const Decomposition& dec,const LocalMatrices<ParLA> local_matrices,const SolverTraits& traits) :
      Ras<Parallel_ParLA,ParLA>(dom,dec,local_matrices,traits), 
-     partition_( local_matrices.sub_assignment().np() /DataDD.nsub_x()), dim_local_res_vec1_(partition_,0),
-     dim_cum_vec1_(partition_,0), dim_local_res_vec2_(partition_,0), dim_cum_vec2_(partition_,0)
+     partition_( local_matrices.sub_assignment().np() /DataDD.nsub_x()), dim_local_res_vec1_(local_matrices.sub_assignment().np(),0),
+     dim_cum_vec1_(local_matrices.sub_assignment().np(),0), dim_local_res_vec2_(local_matrices.sub_assignment().np(),0), 
+     dim_cum_vec2_(local_matrices.sub_assignment().np(),0)
      {
 
       int rank{0},size{0};
@@ -196,20 +197,16 @@ class Parallel_ParLA : public Ras<Parallel_ParLA,ParLA>
       int dim_k{static_cast<int>(domain.nln()*DataDD.sub_sizes()[0]*DataDD.sub_sizes()[1]*2)};
 
       int start_for = (rank<partition_) ? rank : rank % partition_;
-      int count{0};
 
       for(int i=start_for; i<size; i+=this->DataDD.nsub_x()){
         // ogni process della partition sa le dimensione sue e del suo aiutante
-        dim_local_res_vec1_[count] = dim_k/partition_ + (i< (dim_k % partition_));
-        if(i!=0)
-          dim_cum_vec1_[count] = dim_local_res_vec1_[count-1] + dim_cum_vec1_[count-1];
-
-        dim_local_res_vec2_[count] = dim_res/partition_ + (i< (dim_res % partition_));
-        if(i!=0)
-          dim_cum_vec2_[count] = dim_local_res_vec2_[count-1] + dim_cum_vec2_[count-1];
-
-        count++;
+        dim_local_res_vec1_[i] = dim_k/partition_ + (i< (dim_k % partition_));
+        dim_local_res_vec2_[i] = dim_res/partition_ + (i< (dim_res % partition_));
       }   
+      for(int i=1; i<size;++i){
+        dim_cum_vec1_[i] = dim_local_res_vec1_[i-1] + dim_cum_vec1_[i-1];
+        dim_cum_vec2_[i] = dim_local_res_vec2_[i-1] + dim_cum_vec2_[i-1];
+      }
      };
 
     Eigen::VectorXd 
@@ -234,29 +231,11 @@ class Parallel_ParLA : public Ras<Parallel_ParLA,ParLA>
       */
 
 
-
-      int start_for = (rank<this->partition_) ? rank : rank % this->partition_;
-      int count{0};
-      for(int i=start_for; i<size; i+=this->DataDD.nsub_x()){
-        // ogni process della partition sa le dimensione sue e del suo aiutante
-        this->dim_local_res_vec1_[count] = dim_k/this->partition_ + (i< (dim_k % this->partition_));
-        if(i!=0)
-          this->dim_cum_vec1_[count] = this->dim_local_res_vec1_[count-1] + this->dim_cum_vec1_[count-1];
-
-        this->dim_local_res_vec2_[count] = dim_res/this->partition_ + (i< (dim_res % this->partition_));
-        if(i!=0)
-          this->dim_cum_vec2_[count] = this->dim_local_res_vec2_[count-1] + this->dim_cum_vec2_[count-1];
-
-        count++;
-      }   
-
-
       
       Eigen::VectorXd prod1(dim_k);  //Rk*x
-      Eigen::VectorXd local_prod1(dim_local_res_vec1_[rank%this->partition_]);
+      Eigen::VectorXd local_prod1(dim_local_res_vec1_[rank]);
       Eigen::VectorXd prod2(dim_res);  //Rtilde'*uk
-      Eigen::VectorXd local_prod2(dim_local_res_vec2_[rank%this->partition_]);
-      
+      Eigen::VectorXd local_prod2(dim_local_res_vec2_[rank]);
 
       // questo for devo prendere i k giusti che vede quel core, mi appoggio su sub_assingment
       auto sub_division_vec = local_mat.sub_assignment().sub_division_vec()[local_mat.rank()];
@@ -267,18 +246,21 @@ class Parallel_ParLA : public Ras<Parallel_ParLA,ParLA>
 
 
           //prod1 temp.first*x
-          local_prod1 =  temp.first.middleRows(dim_cum_vec1_[rank%this->partition_], dim_local_res_vec1_[rank%this->partition_])* x;
-          //gatherv di prod1
-          MPI_Allgatherv (local_prod1.data(), dim_local_res_vec1_[rank%this->partition_], MPI_DOUBLE, prod1.data(), dim_local_res_vec1_.data(), 
-                      dim_cum_vec1_.data(), MPI_DOUBLE, MPI_COMM_WORLD);
-          /*
-          if 0
-            gather ricezione
-            send a 2
-          if 2
-            gather spedisce a root0
-            recv da 0
-          */
+
+          local_prod1 =  temp.first.middleRows(dim_cum_vec1_[rank], dim_local_res_vec1_[rank])* x;
+          
+        
+          MPI_Gatherv (local_prod1.data(), dim_local_res_vec1_[rank], MPI_DOUBLE, prod1.data(), dim_local_res_vec1_.data(), 
+                      dim_cum_vec1_.data() , MPI_DOUBLE, rank % partition_ , MPI_COMM_WORLD);
+          
+          if(rank < partition_){
+            for(int dest=rank+partition_; dest<size; dest+=partition_)
+              MPI_Send (prod1.data(), dim_k, MPI_DOUBLE, dest, 0, MPI_COMM_WORLD);                                                  
+          }
+          else{
+             MPI_Recv (prod1.data(), dim_k, MPI_DOUBLE, rank%partition_, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+          }
+
           
           uk = lu.solve(prod1);
 
@@ -296,6 +278,18 @@ class Parallel_ParLA : public Ras<Parallel_ParLA,ParLA>
 
       return z;
     }
+
+/*
+    np4 subx2. parla ok, seqla devo imporre subx=np (aumento subx)
+    np2 subx1  pala non si puo, seqla si ma devo aumentare subx
+
+    np2 subx2. seqla ok, parla non va bene
+
+    np4 subx4 seqla ok, parla devo ridurre subx a 2
+
+    npgrande subxpiccolo ma divisibile, ok parla, seqla devo aumnetare subx
+  */
+
 
 
     SolverResults solve(const SpMat& A, const SpMat& b)
