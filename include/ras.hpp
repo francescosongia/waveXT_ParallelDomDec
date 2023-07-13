@@ -173,19 +173,90 @@ public:
 
 class Parallel_ParLA : public Ras<Parallel_ParLA,ParLA>
 {
+  private:
+    int partition_;
+
+    std::vector<int> dim_local_res_vec1_;
+    std::vector<int> dim_cum_vec1_;
+    std::vector<int> dim_local_res_vec2_;
+    std::vector<int> dim_cum_vec2_;
+
   public:
     Parallel_ParLA(Domain dom, const Decomposition& dec,const LocalMatrices<ParLA> local_matrices,const SolverTraits& traits) :
-     Ras<Parallel_ParLA,ParLA>(dom,dec,local_matrices,traits) {};
+     Ras<Parallel_ParLA,ParLA>(dom,dec,local_matrices,traits), 
+     partition_( local_matrices.sub_assignment().np() /DataDD.nsub_x()), dim_local_res_vec1_(partition_,0),
+     dim_cum_vec1_(partition_,0), dim_local_res_vec2_(partition_,0), dim_cum_vec2_(partition_,0)
+     {
+
+      int rank{0},size{0};
+      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+      MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+      int dim_res{static_cast<int>(this->domain.nln()*this->domain.nt()*this->domain.nx()*2)};
+      int dim_k{static_cast<int>(domain.nln()*DataDD.sub_sizes()[0]*DataDD.sub_sizes()[1]*2)};
+
+      int start_for = (rank<partition_) ? rank : rank % partition_;
+      int count{0};
+
+      for(int i=start_for; i<size; i+=this->DataDD.nsub_x()){
+        // ogni process della partition sa le dimensione sue e del suo aiutante
+        dim_local_res_vec1_[count] = dim_k/partition_ + (i< (dim_k % partition_));
+        if(i!=0)
+          dim_cum_vec1_[count] = dim_local_res_vec1_[count-1] + dim_cum_vec1_[count-1];
+
+        dim_local_res_vec2_[count] = dim_res/partition_ + (i< (dim_res % partition_));
+        if(i!=0)
+          dim_cum_vec2_[count] = dim_local_res_vec2_[count-1] + dim_cum_vec2_[count-1];
+
+        count++;
+      }   
+     };
 
     Eigen::VectorXd 
     precondAction(const SpMat& x) 
     {
-      int rank{0},np{0};
+      int rank{0},size{0};
       MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-      MPI_Comm_size(MPI_COMM_WORLD, &np);
-      Eigen::VectorXd z=Eigen::VectorXd::Zero(domain.nln()*domain.nt()*domain.nx()*2);
-      Eigen::VectorXd zero=Eigen::VectorXd::Zero(domain.nln()*domain.nt()*domain.nx()*2);
-      Eigen::VectorXd uk(domain.nln()*DataDD.sub_sizes()[0]*DataDD.sub_sizes()[1]*2);
+      MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+      int dim_res{static_cast<int>(this->domain.nln()*this->domain.nt()*this->domain.nx()*2)};
+      int dim_k{static_cast<int>(domain.nln()*DataDD.sub_sizes()[0]*DataDD.sub_sizes()[1]*2)};
+
+
+      Eigen::VectorXd z=Eigen::VectorXd::Zero(dim_res);
+      Eigen::VectorXd zero=Eigen::VectorXd::Zero(dim_res);
+      Eigen::VectorXd zero_k=Eigen::VectorXd::Zero(dim_k);
+      Eigen::VectorXd uk(dim_k);
+
+      /*
+      Rk*x   x: dim_res -> dimk
+      R'*uk  dimk-> dimres
+      */
+
+
+
+      int start_for = (rank<this->partition_) ? rank : rank % this->partition_;
+      int count{0};
+      for(int i=start_for; i<size; i+=this->DataDD.nsub_x()){
+        // ogni process della partition sa le dimensione sue e del suo aiutante
+        this->dim_local_res_vec1_[count] = dim_k/this->partition_ + (i< (dim_k % this->partition_));
+        if(i!=0)
+          this->dim_cum_vec1_[count] = this->dim_local_res_vec1_[count-1] + this->dim_cum_vec1_[count-1];
+
+        this->dim_local_res_vec2_[count] = dim_res/this->partition_ + (i< (dim_res % this->partition_));
+        if(i!=0)
+          this->dim_cum_vec2_[count] = this->dim_local_res_vec2_[count-1] + this->dim_cum_vec2_[count-1];
+
+        count++;
+      }   
+
+
+      
+      Eigen::VectorXd prod1(dim_k);  //Rk*x
+      Eigen::VectorXd local_prod1(dim_local_res_vec1_[rank%this->partition_]);
+      Eigen::VectorXd prod2(dim_res);  //Rtilde'*uk
+      Eigen::VectorXd local_prod2(dim_local_res_vec2_[rank%this->partition_]);
+      
 
       // questo for devo prendere i k giusti che vede quel core, mi appoggio su sub_assingment
       auto sub_division_vec = local_mat.sub_assignment().sub_division_vec()[local_mat.rank()];
@@ -193,13 +264,31 @@ class Parallel_ParLA : public Ras<Parallel_ParLA,ParLA>
           Eigen::SparseLU<SpMat > lu;
           lu.compute(local_mat.getAk(k));
           auto temp = local_mat.getRk(k);
-          uk = lu.solve(temp.first*x);
+
+
+          //prod1 temp.first*x
+          local_prod1 =  temp.first.middleRows(dim_cum_vec1_[rank%this->partition_], dim_local_res_vec1_[rank%this->partition_])* x;
+          //gatherv di prod1
+          MPI_Allgatherv (local_prod1.data(), dim_local_res_vec1_[rank%this->partition_], MPI_DOUBLE, prod1.data(), dim_local_res_vec1_.data(), 
+                      dim_cum_vec1_.data(), MPI_DOUBLE, MPI_COMM_WORLD);
+          /*
+          if 0
+            gather ricezione
+            send a 2
+          if 2
+            gather spedisce a root0
+            recv da 0
+          */
+          
+          uk = lu.solve(prod1);
+
           z=z+(temp.second.transpose())*uk;
+          
           }
 
-      int partition{0};
-      partition = np / this->DataDD.nsub_x() ;  //quanti p sono assegnati a striscia temp
-      if(rank<partition)
+
+      
+      if(rank<this->partition_)
         MPI_Allreduce(MPI_IN_PLACE, z.data(), domain.nln()*domain.nt()*domain.nx()*2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
       else
         MPI_Allreduce(zero.data(), z.data(), domain.nln()*domain.nt()*domain.nx()*2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
@@ -226,8 +315,8 @@ class Parallel_ParLA : public Ras<Parallel_ParLA,ParLA>
       int dim_res{static_cast<int>(this->domain.nln()*this->domain.nt()*this->domain.nx()*2)};
 
       
-      std::vector<int> dim_local_res_vec{0};
-      std::vector<int> dim_cum_vec{0};
+      std::vector<int> dim_local_res_vec(size,0);
+      std::vector<int> dim_cum_vec(size,0);
 
       for(int i=0;i<size;++i){
         dim_local_res_vec[i] = dim_res/size + (i< (dim_res % size));
