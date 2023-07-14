@@ -18,8 +18,8 @@
   [../]
 
   [./traits]
-    method = RAS
-    linear_algebra = ParLA
+    method = PIPE
+    linear_algebra = SeqLA
   [../]
 	
 [../]

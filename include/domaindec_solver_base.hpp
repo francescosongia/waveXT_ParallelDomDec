@@ -28,6 +28,8 @@ public:
 
   virtual SolverResults solve(const SpMat& A, const SpMat& b) = 0;  //Eigen::VectorXd
  
+  SolverTraits traits() const { return traits_;};
+  
   virtual ~DomainDecSolverBase() = default;
 
 protected:

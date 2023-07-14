@@ -230,8 +230,6 @@ class Parallel_ParLA : public Ras<Parallel_ParLA,ParLA>
       R'*uk  dimk-> dimres
       */
 
-
-      
       Eigen::VectorXd prod1(dim_k);  //Rk*x
       Eigen::VectorXd local_prod1(dim_local_res_vec1_[rank]);
       Eigen::VectorXd prod2(dim_res);  //Rtilde'*uk
@@ -246,25 +244,32 @@ class Parallel_ParLA : public Ras<Parallel_ParLA,ParLA>
 
 
           //prod1 temp.first*x
-
           local_prod1 =  temp.first.middleRows(dim_cum_vec1_[rank], dim_local_res_vec1_[rank])* x;
-          
-        
+      
           MPI_Gatherv (local_prod1.data(), dim_local_res_vec1_[rank], MPI_DOUBLE, prod1.data(), dim_local_res_vec1_.data(), 
                       dim_cum_vec1_.data() , MPI_DOUBLE, rank % partition_ , MPI_COMM_WORLD);
           
-          if(rank < partition_){
+          if(rank < partition_)
             for(int dest=rank+partition_; dest<size; dest+=partition_)
               MPI_Send (prod1.data(), dim_k, MPI_DOUBLE, dest, 0, MPI_COMM_WORLD);                                                  
-          }
-          else{
+          else
              MPI_Recv (prod1.data(), dim_k, MPI_DOUBLE, rank%partition_, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-          }
 
-          
           uk = lu.solve(prod1);
 
-          z=z+(temp.second.transpose())*uk;
+          //prod2  (temp.second.transpose())*uk
+          local_prod2 =  temp.second.transpose().middleRows(dim_cum_vec2_[rank], dim_local_res_vec2_[rank])* uk;
+      
+          MPI_Gatherv (local_prod2.data(), dim_local_res_vec2_[rank], MPI_DOUBLE, prod2.data(), dim_local_res_vec2_.data(), 
+                      dim_cum_vec2_.data() , MPI_DOUBLE, rank % partition_ , MPI_COMM_WORLD);
+          
+          if(rank < partition_)
+            for(int dest=rank+partition_; dest<size; dest+=partition_)
+              MPI_Send (prod2.data(), dim_res, MPI_DOUBLE, dest, 1, MPI_COMM_WORLD);                                                  
+          else
+             MPI_Recv (prod2.data(), dim_res, MPI_DOUBLE, rank%partition_, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+          z=z+prod2;
           
           }
 

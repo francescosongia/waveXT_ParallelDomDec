@@ -107,8 +107,6 @@ class ParLA : public SubAssignment<ParLA>
           this->sub_division_vec_[i] = temp;
           this->sub_division_(i,Eigen::seq(0,this->nsub_t_-1)) = temp;
         }
-        std::cout<<"matrix subdivision"<<std::endl;
-        std::cout<<sub_division_<<std::endl;
       }
       else{
         std::cerr<<"error in subs division among processes"<<std::endl;

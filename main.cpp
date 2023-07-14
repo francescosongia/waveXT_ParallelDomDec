@@ -89,7 +89,7 @@ int main(int argc, char **argv) {
     //std::string method="PIPE";
     std::cout<<"method used: "<<method<<std::endl;
 
-    int np = 0;
+    int np = 0; 
     int rank = 0;
 
     std::string la = "NOLA";
