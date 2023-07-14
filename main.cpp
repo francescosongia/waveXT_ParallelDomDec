@@ -33,47 +33,21 @@ int main(int argc, char **argv) {
     int m = datafile("parameters/decomposition/size_subt", 0);
 
     std::string method= datafile("parameters/traits/method", "RAS");
+    std::string la= datafile("parameters/traits/linear_algebra", "SeqLA");
 
     std::string test_matrices=datafile("file_matrices/test", "test1");
     std::string filenameA = folder_root+"problem_matrices//"+test_matrices+"//A.txt";
     std::string filenameb = folder_root+"problem_matrices//"+test_matrices+"//b.txt";
     std::string filename_coord = folder_root+"problem_matrices//"+test_matrices+"//coord.txt";
     
-    /*
-    //20 100, x1t5
-    nx=20;
-    nt=100;
-    X=1;
-    T=5;
-    nln=6;
-
-    nsub_x=2; //3
-    nsub_t=20; //4
-    // n=12;  //8
-    // m=6;
-    std::string filenameA=R"(/home/scientific-vm/Desktop/projectPACS/A_1_5.txt)";
-    std::string filenameb=R"(/home/scientific-vm/Desktop/projectPACS/b_1_5.txt)";
-    //std::string filenameA=R"(C:\Users\franc\Desktop\pacsPROJECT_test\A.txt)";
-    //std::string filenameb=R"(C:\Users\franc\Desktop\pacsPROJECT_test\b.txt)";
-    
-
-    
-    nx=20;
-    nt=20;
-    X=1;
-    T=1;
-    nln=6;
-
-    nsub_x=2;
-    nsub_t=10; //4;
-    // n=12;
-    // m=6;
-    std::string filenameA=R"(/home/scientific-vm/Desktop/projectPACS/A.txt)";
-    std::string filenameb=R"(/home/scientific-vm/Desktop/projectPACS/b.txt)";
-    //std::string filenameA=R"(C:\Users\franc\Desktop\pacsPROJECT_test\A.txt)";
-    //std::string filenameb=R"(C:\Users\franc\Desktop\pacsPROJECT_test\b.txt)";
-    */
-
+    if(la!= "SeqLA"){
+        std::cerr<<"sequential policy required"<<std::endl;
+        return 0;
+    }
+    if(nsub_t == 1 || nsub_x == 1){
+        std::cerr<<"nsubx and nsubt must be >= 1"<<std::endl;
+        return 0;
+    }
 
     Domain dom(nx, nt, X, T, nln);    
     Decomposition DataDD(dom, nsub_x, nsub_t);
@@ -86,77 +60,31 @@ int main(int argc, char **argv) {
     double tol{1e-10};
     unsigned int max_it{50};
     SolverTraits traits(max_it,tol);
-    //std::string method="PIPE";
+
     std::cout<<"method used: "<<method<<std::endl;
 
-    int np = 0; 
+    int np = 1; 
     int rank = 0;
-
-    std::string la = "NOLA";
-
 
     LocalMatrices<SeqLA> local_mat(dom, DataDD, A, np, rank);
     SolverResults res_obj;
-    if (method == "RAS"){
+    if (method == "RAS" && la =="SeqLA"){
         DomainDecSolverFactory<Sequential,SeqLA> solver(dom,DataDD, local_mat,traits);
         res_obj=solver(method,A,b);
     }
-    else{
+    else{ // PIPE
         DomainDecSolverFactory<PipeSequential,SeqLA> solver(dom,DataDD, local_mat,traits);
         res_obj=solver(method,A,b);
     }
 
     
     auto res = res_obj.getUW();
-    //Eigen::VectorXd res=solver(method,A,b,traits);
     std::cout<<res(0)<<std::endl;
-    //std::string f=R"(/home/scientific-vm/Desktop/pacs_primepolicy_nonfunziona_0607/u.txt)";
     std::string f= folder_root+"u.txt";
     saveVec_totxt(f,res);
 
     res_obj.formatGNU(0,filename_coord,nx*nt,nln);
     res_obj.formatGNU(1,filename_coord,nx*nt,nln);
-
-
-/*
-    //vedere valori di sparsa
-    int i=0;
-    for (int k=0; k<A1.outerSize(); ++k)
-        for (SpMat::InnerIterator it(A1,k); it; ++it)
-        {
-
-            //it.value();
-            //it.row();   // row index
-            //it.col();   // col index (here it is equal to k)
-            //it.index(); // inner index, here it is equal to it.row()
-            if (i<50) {
-                std::cout << "i: " << it.row()+1 << "  j: " << it.col()+1 << std::endl;
-                std::cout << it.value() << std::endl<<std::endl;
-                ++i;
-            }
-        }
-
-*/
-
-    //DomainDecSolverBase base(dom,DataDD,A);
-
-    //SpMat R1=base.getRk(1).first;
-/*
-    Eigen::VectorXd one=Eigen::VectorXd::Ones(20*20*6*2);
-    Eigen::VectorXd one_1=R1*one;
-    Eigen::VectorXd one_1_all=R1.transpose()*one_1;
-    std::cout<<one_1_all(35)<<std::endl;
-    //std::string f1=R"(C:\Users\franc\Desktop\pacsPROJECT_test\oneall.txt)";
-    //saveVec_totxt(f1,one_1_all);
-
-*/
-
-
-
-
-
-
-
 
     return 0;
 }

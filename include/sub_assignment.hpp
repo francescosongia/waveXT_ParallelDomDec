@@ -47,7 +47,6 @@ public:
 
 };
 
-
 class SeqLA : public SubAssignment<SeqLA>
 {
   public:
@@ -57,25 +56,24 @@ class SeqLA : public SubAssignment<SeqLA>
         this->sub_division_.resize(nproc,(nsubx/nproc)*nsubt);
      };
     void createSubDivision()
-    { //4subx 2 np
-      int partition{0};
-      partition = this->nsub_x_/ this->np_;
-
-      if (this->nsub_x_% this->np_ ==0){  //this->np_ == this->nsub_x_
+    { 
+      if (this->np_ > 1 && this->nsub_x_% this->np_ ==0 ){  //this->np_ == this->nsub_x_
+        int partition{0};
+        partition = this->nsub_x_/ this->np_;
         for(int i=0; i< this->np_; ++i){
           auto temp = Eigen::VectorXi::LinSpaced(this->nsub_t_*partition, this->nsub_t_*partition*i + 1, this->nsub_t_*partition*(i+1)) ;
           this->sub_division_vec_[i] = temp;
           this->sub_division_(i,Eigen::seq(0,this->nsub_t_*partition-1)) = temp;
         }
       }
-      else if(this->np_ == 0){
+      else if(this->np_ == 1){
         this->sub_division_.setZero();
         auto temp = Eigen::VectorXi::LinSpaced(this->nsub_t_*this->nsub_x_, 1, this->nsub_t_*this->nsub_x_) ;
         this->sub_division_vec_.push_back(temp);
         
       }
       else{
-        std::cerr<<"error in subs division among processes_ sub_ass"<<std::endl;
+        std::cerr<<"error in subs division among processes"<<std::endl;
       }
 
 

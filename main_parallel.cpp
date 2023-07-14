@@ -11,13 +11,13 @@
 //troppi include
 
 int main(int argc, char **argv) {
-         
 
     GetPot command_line(argc, argv);
     const std::string filename = command_line.follow("data", 2, "-f", "--file");
     GetPot datafile(filename.c_str());
 
-    std::string folder_root = "//home//scientific-vm//Desktop//branch_pacs//projectPACS//";//"//home//scientific-vm//Desktop//projectPACS//";
+    std::string folder_root = "//home//scientific-vm//Desktop//branch_pacs//projectPACS//";
+                                //"//home//scientific-vm//Desktop//projectPACS//";
 
     unsigned int nx = datafile("parameters/problem/nx", 20);
     unsigned int nt = datafile("parameters/problem/nt", 20);
@@ -38,9 +38,120 @@ int main(int argc, char **argv) {
     std::string filenameb = folder_root+"problem_matrices//"+test_matrices+"//b.txt";
     std::string filename_coord = folder_root+"problem_matrices//"+test_matrices+"//coord.txt";
 
+    MPI_Init(&argc, &argv);
+    
+    int rank{0},size{0};
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-    /*
-    //20 100, x1t5
+    //NEXT
+    
+    // sistemare makefile
+    // sistemare include
+    // opzione verbose
+    // commentare e ordinare file (rimuovere cpp che non servono)
+
+    // assert
+    // prova con problma piu grosso, altri test cases e dividere i data file di getpot
+    // aggiungere const                             
+    // gestire altri modi di parallelizzare (matrice dei sub assegnati, caso in cui non sono divisibili)
+    // postproccesing (senza codice, confrontare però la varie policy in termini di tempo e solves)
+    // aggiungere nel getpot anche iter e toll
+    
+    
+    // qui sto facendo if con errori, sarebbe da proporre versione 
+    // accettabile (modificare nsubx o policy LA) e andare avanti
+    // FARLI CON ASSERT !
+    if(size%2 !=0){
+        std::cerr<<"even number of cores required"<<std::endl;
+        return 0;
+    }
+    if(nsub_x == 1 && la =="ParLA"){
+        std::cerr<<"ParLA not possibile with subx=1"<<std::endl;
+        return 0;
+    }
+    if(nsub_x == 1 && la =="SeqLA"){
+        std::cerr<<"increase the number of subx, SeqLA requires size=nsubx, size>=2 "<<std::endl;
+        return 0;
+    }
+    if(size == nsub_x && la =="ParLA"){
+        std::cerr<<"with size = nsubx, SeqLA is needed. If you want to use ParLA decrease the number of subx."<<std::endl;
+        return 0;
+    }
+    if(la=="SeqLA" && size!=nsub_x && size>=2){
+        std::cerr<<"SeqLA requires size=nsubx."<<std::endl;
+        return 0;
+    }
+    if(la=="ParLA" && size%nsub_x !=0){
+        std::cerr<<"ParLA requires size proportinal to nsubx."<<std::endl;
+        return 0;
+    }
+
+    if(nsub_t == 1 || nsub_x == 1){
+        std::cerr<<"nsubx and nsubt must be >= 1"<<std::endl;
+        return 0;
+    }
+
+
+
+    Domain dom(nx, nt, X, T, nln);
+    Decomposition DataDD(dom, nsub_x, nsub_t);
+    std::cout<<"Decomposition created, rank: "<<rank<<std::endl;
+
+    SpMat A=readMat_fromtxt(filenameA,nt*nx*nln*2,nt*nx*nln*2);
+    SpMat b=readMat_fromtxt(filenameb,nt*nx*nln*2,1);
+    std::cout<<"get problem matrices, rank: "<<rank<<std::endl;
+
+    double tol{1e-10};
+    unsigned int max_it{50};
+    SolverTraits traits(max_it,tol);
+
+
+    std::cout<<"method used: "<<method<<", rank: "<<rank<<std::endl;
+    std::cout<<"LA policy used: "<<la<<", rank: "<<rank<<std::endl;    
+        
+    SolverResults res_obj;
+    
+    if (method == "RAS" && la == "ParLA"){
+        LocalMatrices<ParLA> local_mat(dom, DataDD, A, size, rank);
+        DomainDecSolverFactory<Parallel_ParLA,ParLA> solver(dom,DataDD,local_mat,traits);
+        res_obj=solver(method,A,b);
+    }
+    else if (method == "PIPE" && la == "ParLA") {
+        LocalMatrices<ParLA> local_mat(dom, DataDD, A, size, rank);
+        DomainDecSolverFactory<PipeParallel_ParLA,ParLA> solver(dom,DataDD,local_mat,traits);
+        res_obj=solver(method,A,b);
+    }
+    else if (method == "RAS" && la == "SeqLA") {
+        LocalMatrices<SeqLA> local_mat(dom, DataDD, A, size, rank);
+        DomainDecSolverFactory<Parallel_SeqLA,SeqLA> solver(dom,DataDD,local_mat,traits);
+        res_obj=solver(method,A,b);
+    }
+    else{// if (method == "PIPE" and la == "SeqLA") {
+        LocalMatrices<SeqLA> local_mat(dom, DataDD, A, size, rank);
+        DomainDecSolverFactory<PipeParallel_SeqLA,SeqLA> solver(dom,DataDD,local_mat,traits);
+        res_obj=solver(method,A,b);
+    }
+
+    auto res = res_obj.getUW();
+    if (rank==0){
+        std::cout<<res(0)<<std::endl;
+        std::string f= folder_root+"u.txt";
+        saveVec_totxt(f,res);
+
+        res_obj.formatGNU(0,filename_coord,nx*nt,nln);
+        res_obj.formatGNU(1,filename_coord,nx*nt,nln);
+    }
+    
+    MPI_Finalize();
+
+    return 0;
+}
+
+
+
+/*
+ //20 100, x1t5
     nx=20;
     nt=100;
     X=1;
@@ -72,136 +183,3 @@ int main(int argc, char **argv) {
     //std::string filenameA=R"(C:\Users\franc\Desktop\pacsPROJECT_test\A.txt)";
     //std::string filenameb=R"(C:\Users\franc\Desktop\pacsPROJECT_test\b.txt)";
     */
-
-    /*
-    con questa versione ho creato localmatrices prima dividendo questo step dallo step del solver. va bene anche cosi. 
-    prima pensavo di farlo per non far fare a core 2 il solver ma in realtà deve farlo per forza. 
-    teniamo comunque questa versione, forse piu ordinata nella creazione delle local mat e gia subito posso decidere 
-    quali creare a seconda del rank in cui sono
-    */
-
-    //NEXT
-    // fare lo stesso per pipe                      OK MA ASSUNZIONE (RAGIONEVOLE) NSUBX divisibile per NP
-    // ognuno fa solo le sue local                  OK
-    // aggiungo vettore ordinamento locale rk       OK MA SOLO NEL CASO SUPER BASE CON PARALL SPAZIO E TUTTO DIVISIBILE
-    // gestire meglio np, rank. ParallelTraits
-    // pensare se è necessario fare allreduce in precondAction  OK, MAIL BAIONI
-    // generica interfaccia sequantial vs parallel  OK IDEA CON ESEMPIO COMPARE POLICY
-    // prova con problma piu grosso                 OK PARALLEL ANCORA PIU LENTO
-    // mettere mpi.h in include                     OK
-    // utlizzare solver_results come return in solve OK
-    // aggiungere const                             OK  
-    // gestire altri modi di parallelizzare (matrice dei sub assegnati, caso in cui non sono divisibili)
-    // intraparallelization
-    // postproccesing                               FATTO GNUPLOT
-    // correggere solve in pipe, differenziarlo
-    // mettere in cpp
-    // gesitre tutti i casi, divisione aribitaria sub vs np. 
-
-
-    Domain dom(nx, nt, X, T, nln);
-    Decomposition DataDD(dom, nsub_x, nsub_t);
-    std::cout<<"Decomposition created"<<std::endl;
-    
-    MPI_Init(&argc, &argv);
-    //MPI_Init(NULL,NULL);
-    
-    int rank{0},np{0};
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &np);
-
-    SpMat A=readMat_fromtxt(filenameA,nt*nx*nln*2,nt*nx*nln*2);
-    SpMat b=readMat_fromtxt(filenameb,nt*nx*nln*2,1);
-    std::cout<<"get problem matrices, rank: "<<rank<<std::endl;
-
-    double tol{1e-10};
-    unsigned int max_it{50};
-    SolverTraits traits(max_it,tol);
-    //std::string method="RAS";
-    std::cout<<"method used: "<<method<<", rank: "<<rank<<std::endl;
-
-    std::cout<<"LA policy used: "<<la<<", rank: "<<rank<<std::endl;    
-        
-
-    SolverResults res_obj;
-    
-    if (method == "RAS" && la == "ParLA"){
-        LocalMatrices<ParLA> local_mat(dom, DataDD, A, np, rank);
-        DomainDecSolverFactory<Parallel_ParLA,ParLA> solver(dom,DataDD,local_mat,traits);
-        res_obj=solver(method,A,b);
-    }
-    else if (method == "PIPE" && la == "ParLA") {
-        LocalMatrices<ParLA> local_mat(dom, DataDD, A, np, rank);
-        DomainDecSolverFactory<PipeParallel_ParLA,ParLA> solver_pipe(dom,DataDD,local_mat,traits);
-        res_obj=solver_pipe(method,A,b);
-    }
-    else if (method == "RAS" && la == "SeqLA") {
-        LocalMatrices<SeqLA> local_mat(dom, DataDD, A, np, rank);
-        DomainDecSolverFactory<Parallel_SeqLA,SeqLA> solver_pipe(dom,DataDD,local_mat,traits);
-        res_obj=solver_pipe(method,A,b);
-    }
-    else{// if (method == "PIPE" and la == "SeqLA") {
-        LocalMatrices<SeqLA> local_mat(dom, DataDD, A, np, rank);
-        DomainDecSolverFactory<PipeParallel_SeqLA,SeqLA> solver_pipe(dom,DataDD,local_mat,traits);
-        res_obj=solver_pipe(method,A,b);
-    }
-
-    auto res = res_obj.getUW();
-    if (rank==0){
-    std::cout<<res(0)<<std::endl;
-    //std::string f=R"(C:\Users\franc\Desktop\pacsPROJECT_test\u.txt)";
-    //std::string f=R"(/home/scientific-vm/Desktop/pacs_primepolicy_nonfunziona_0607/u.txt)";
-    std::string f= folder_root+"u.txt";
-    saveVec_totxt(f,res);
-
-    res_obj.formatGNU(0,filename_coord,nx*nt,nln);
-    res_obj.formatGNU(1,filename_coord,nx*nt,nln);
-    }
-    
-    MPI_Finalize();
-
-    
-
-
-/*
-    //vedere valori di sparsa
-    int i=0;
-    for (int k=0; k<A1.outerSize(); ++k)
-        for (SpMat::InnerIterator it(A1,k); it; ++it)
-        {
-
-            //it.value();
-            //it.row();   // row index
-            //it.col();   // col index (here it is equal to k)
-            //it.index(); // inner index, here it is equal to it.row()
-            if (i<50) {
-                std::cout << "i: " << it.row()+1 << "  j: " << it.col()+1 << std::endl;
-                std::cout << it.value() << std::endl<<std::endl;
-                ++i;
-            }
-        }
-
-*/
-
-    //DomainDecSolverBase base(dom,DataDD,A);
-
-    //SpMat R1=base.getRk(1).first;
-/*
-    Eigen::VectorXd one=Eigen::VectorXd::Ones(20*20*6*2);
-    Eigen::VectorXd one_1=R1*one;
-    Eigen::VectorXd one_1_all=R1.transpose()*one_1;
-    std::cout<<one_1_all(35)<<std::endl;
-    //std::string f1=R"(C:\Users\franc\Desktop\pacsPROJECT_test\oneall.txt)";
-    //saveVec_totxt(f1,one_1_all);
-
-*/
-
-
-
-
-
-
-
-
-    return 0;
-}

@@ -222,7 +222,6 @@ class Parallel_ParLA : public Ras<Parallel_ParLA,ParLA>
 
       Eigen::VectorXd z=Eigen::VectorXd::Zero(dim_res);
       Eigen::VectorXd zero=Eigen::VectorXd::Zero(dim_res);
-      Eigen::VectorXd zero_k=Eigen::VectorXd::Zero(dim_k);
       Eigen::VectorXd uk(dim_k);
 
       /*

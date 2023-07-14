@@ -19,45 +19,13 @@ public:
 
   SolverResults solve(const SpMat& A, const SpMat& b) override
     {
-        auto start = std::chrono::steady_clock::now();
-        double tol=this->traits_.tol();
-        //double tol_sx=traits.tol_pipe_sx();
-        unsigned int max_it=this->traits_.max_it();
-        //unsigned int it_wait=traits.it_wait();
-        double res=tol+1;
-        std::vector<double> resinf_vec;   //non è nemmeno relativo, ne precondz. Controllare.
-        unsigned int niter=0;
-
-
-        Eigen::VectorXd uw=Eigen::VectorXd::Zero(this->domain.nln()*this->domain.nt()*this->domain.nx()*2);
-        Eigen::VectorXd v(this->domain.nln()*this->domain.nt()*this->domain.nx()*2);
-
-        while(res>tol and niter<max_it){
-            v=b-A*uw;
-            res=v.lpNorm<Eigen::Infinity>();
-            uw=uw+precondAction(b-A*uw);
-            resinf_vec.push_back(res);
-            niter++;
-
-        }
-        //MPI_Allreduce(MPI_IN_PLACE, &solves_, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
-
-
-        // dividere anche qui rank0 e altri. quindi servirà differenziare solve
-        auto end = std::chrono::steady_clock::now();
-        std::cout<<"niter: "<<niter<<std::endl;
-        auto solves = this->traits_.solves();
-        std::cout<<"solves: "<<solves<<std::endl;
-        //std::cout<<"solves: "<<solves_<<std::endl;
-        double time=std::chrono::duration_cast<std::chrono::seconds>(end - start).count();
-        std::cout <<"time in seconds: "<< time<<std::endl;
-
         this->traits_.setZone(2);
         this->traits_.setSubtSx(1);
         this->traits_.setItWaited(0);
         this->traits_.setSolves(0);
 
-        SolverResults res_obj(uw,solves,time, this->traits_, this->DataDD);
+        P func_wrapper(this->domain,this->DataDD,this->local_mat,this->traits_);
+        SolverResults res_obj = func_wrapper.solve(A,b);
 
         return res_obj;
     };
@@ -77,21 +45,14 @@ protected:
         this->traits_.setItWaited(func_wrapper.traits().it_waited());
         this->traits_.setSolves(func_wrapper.traits().solves());
 
-        /*
-        get traits in base
-        fare i setters qui sopra
-        in ogni funzione leggere i 4 param da traits
-        la
-        */
-
         return res;
     };
 
 
-    unsigned int check_sx(const Eigen::VectorXd& v,double tol_sx)
+    unsigned int check_sx(const Eigen::VectorXd& v)
     {
         P func_wrapper(this->domain,this->DataDD,this->local_mat,this->traits_);
-        return func_wrapper.check_sx(v,tol_sx); 
+        return func_wrapper.check_sx(v); 
     };
 
 };
@@ -103,6 +64,46 @@ class PipeParallel_SeqLA : public RasPipelined<PipeParallel_SeqLA,SeqLA>
     PipeParallel_SeqLA(Domain dom, const Decomposition& dec,const LocalMatrices<SeqLA> local_matrices, const SolverTraits& traits) : 
     RasPipelined<PipeParallel_SeqLA,SeqLA>(dom,dec,local_matrices,traits) 
     { };
+    
+    SolverResults solve(const SpMat& A, const SpMat& b) override
+    {   
+        int rank{0};
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        auto start = std::chrono::steady_clock::now();
+        double tol=this->traits_.tol();
+        unsigned int max_it=this->traits_.max_it();
+        double res=tol+1;
+        std::vector<double> resinf_vec;   //non è nemmeno relativo, ne precondz. Controllare.
+        unsigned int niter=0;
+
+        Eigen::VectorXd uw=Eigen::VectorXd::Zero(this->domain.nln()*this->domain.nt()*this->domain.nx()*2);
+        Eigen::VectorXd v(this->domain.nln()*this->domain.nt()*this->domain.nx()*2);
+
+        while(res>tol and niter<max_it){
+            v=b-A*uw;
+            res=v.lpNorm<Eigen::Infinity>();
+            uw=uw+precondAction(b-A*uw);
+            resinf_vec.push_back(res);
+            niter++;
+
+        }
+        unsigned int solves = this->traits_.solves();
+        MPI_Allreduce(MPI_IN_PLACE, &solves, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
+
+        auto end = std::chrono::steady_clock::now();
+        double time=std::chrono::duration_cast<std::chrono::seconds>(end - start).count();
+
+        if(rank==0){
+            std::cout<<"niter: "<<niter<<std::endl;
+            std::cout<<"solves: "<<solves<<std::endl;
+            std::cout <<"time in seconds: "<< time<<std::endl;
+        }
+
+        SolverResults res_obj(uw,solves,time, this->traits_, this->DataDD);
+
+        return res_obj;
+    };
+
 
     Eigen::VectorXd precondAction(const SpMat& x)
     {
@@ -121,10 +122,10 @@ class PipeParallel_SeqLA : public RasPipelined<PipeParallel_SeqLA,SeqLA>
       int partition = this->DataDD.nsub_x() / size;  
 
       Eigen::VectorXd z=Eigen::VectorXd::Zero(this->domain.nln()*this->domain.nt()*this->domain.nx()*2);
-      double tol_sx=this->traits_.tol_pipe_sx();
+
       unsigned int it_wait=this->traits_.it_wait();
 
-      unsigned int sx1= check_sx(x,tol_sx);
+      unsigned int sx1= check_sx(x);
       unsigned int f=0;
       if (sx1 >subt_sx_ and sx1<=this->DataDD.nsub_t()){
           subt_sx_=sx1;
@@ -144,7 +145,7 @@ class PipeParallel_SeqLA : public RasPipelined<PipeParallel_SeqLA,SeqLA>
               it_waited_++;
           }
       } 
-      // nsubt > = subt_sx+2 hypotesis
+      // nsubt > = subt_sx+2 hypotesis   //INSERIRE QUESTO CHECK?
 
       unsigned int dx=subt_sx_+zone_;
     
@@ -175,13 +176,13 @@ class PipeParallel_SeqLA : public RasPipelined<PipeParallel_SeqLA,SeqLA>
     };
 
 
-    unsigned int check_sx(const Eigen::VectorXd& v,double tol_sx)
+    unsigned int check_sx(const Eigen::VectorXd& v)
     {
       int np = this->local_mat.sub_assignment().np();
       int partition = this->DataDD.nsub_x() / np;  
       int rank = this->local_mat.rank();
       unsigned int subt_sx_ = this->traits_.subt_sx(); 
-      //questi tre valori perche devo calcolarli sempre? non sarebbe meglio metterli come membri (anche privati)
+      double tol_sx = this->traits_.tol_pipe_sx(); 
 
       unsigned int sx1=subt_sx_;
       if (subt_sx_>this->DataDD.nsub_t()){
@@ -192,9 +193,6 @@ class PipeParallel_SeqLA : public RasPipelined<PipeParallel_SeqLA,SeqLA>
       int fail=0;
       Eigen::VectorXd res(this->domain.nln()*this->DataDD.sub_sizes()[0]*this->DataDD.sub_sizes()[1]*2);
 
-      // posso far fare questo controllo un po ad ognuno dei rank, da defnire però l'intersezione tra i e quello che il rank puo vedere
-
-      //for(size_t i=subt_sx_;i<=DataDD.nsub_t()*(DataDD.nsub_x()-1)+1;i+=DataDD.nsub_t()){
       for(size_t i=subt_sx_+this->DataDD.nsub_t()*partition*rank; i<=subt_sx_+this->DataDD.nsub_t()*partition*(rank +1)-1; i+=this->DataDD.nsub_t()){
           res=this->local_mat.getRk(i).first*v;
           auto err= res.lpNorm<Eigen::Infinity>();
@@ -203,7 +201,6 @@ class PipeParallel_SeqLA : public RasPipelined<PipeParallel_SeqLA,SeqLA>
               break;
           }
       }
-      //pensarlo come allrduce
       MPI_Allreduce(MPI_IN_PLACE, &fail, 1, MPI_INT, MPI_PROD, MPI_COMM_WORLD);
       if(fail==0)
           sx1++;
@@ -215,11 +212,107 @@ class PipeParallel_SeqLA : public RasPipelined<PipeParallel_SeqLA,SeqLA>
 
 class PipeParallel_ParLA : public RasPipelined<PipeParallel_ParLA,ParLA>
 {
+  private:
+    int partition_;
+
+    std::vector<int> dim_local_res_vec1_;
+    std::vector<int> dim_cum_vec1_;
+    std::vector<int> dim_local_res_vec2_;
+    std::vector<int> dim_cum_vec2_;
+
   public:
     PipeParallel_ParLA(Domain dom, const Decomposition& dec,const LocalMatrices<ParLA> local_matrices, const SolverTraits& traits):
                          
-    RasPipelined<PipeParallel_ParLA,ParLA>(dom,dec,local_matrices,traits) 
-    {    };
+    RasPipelined<PipeParallel_ParLA,ParLA>(dom,dec,local_matrices,traits),
+     partition_( local_matrices.sub_assignment().np() /DataDD.nsub_x()), dim_local_res_vec1_(local_matrices.sub_assignment().np(),0),
+     dim_cum_vec1_(local_matrices.sub_assignment().np(),0), dim_local_res_vec2_(local_matrices.sub_assignment().np(),0), 
+     dim_cum_vec2_(local_matrices.sub_assignment().np(),0)
+    {
+      int rank{0},size{0};
+      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+      MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+      int dim_res{static_cast<int>(this->domain.nln()*this->domain.nt()*this->domain.nx()*2)};
+      int dim_k{static_cast<int>(domain.nln()*DataDD.sub_sizes()[0]*DataDD.sub_sizes()[1]*2)};
+
+      int start_for = (rank<partition_) ? rank : rank % partition_;
+
+      for(int i=start_for; i<size; i+=this->DataDD.nsub_x()){
+        // ogni process della partition sa le dimensione sue e del suo aiutante
+        dim_local_res_vec1_[i] = dim_k/partition_ + (i< (dim_k % partition_));
+        dim_local_res_vec2_[i] = dim_res/partition_ + (i< (dim_res % partition_));
+      }   
+      for(int i=1; i<size;++i){
+        dim_cum_vec1_[i] = dim_local_res_vec1_[i-1] + dim_cum_vec1_[i-1];
+        dim_cum_vec2_[i] = dim_local_res_vec2_[i-1] + dim_cum_vec2_[i-1];
+      }
+    };
+
+    // A*uw1 duvuso tutti e 4 in solve
+    // precondaction dividre temp tra me e l'aiutamte
+
+    SolverResults solve(const SpMat& A, const SpMat& b) override
+    {
+        int rank{0},size{0};
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+        auto start = std::chrono::steady_clock::now();
+        double tol=this->traits_.tol();
+        unsigned int max_it=this->traits_.max_it();
+        double res=tol+1;
+        std::vector<double> resinf_vec;   //non è nemmeno relativo, ne precondz. Controllare.
+        unsigned int niter=0;
+
+        int dim_res{static_cast<int>(this->domain.nln()*this->domain.nt()*this->domain.nx()*2)};
+
+        Eigen::VectorXd uw=Eigen::VectorXd::Zero(dim_res);
+        Eigen::VectorXd v(dim_res);
+
+        std::vector<int> dim_local_res_vec(size,0);
+        std::vector<int> dim_cum_vec(size,0);
+
+        for(int i=0;i<size;++i){
+            dim_local_res_vec[i] = dim_res/size + (i< (dim_res % size));
+            if(i!=0)
+            dim_cum_vec[i] = dim_local_res_vec[i-1] + dim_cum_vec[i-1];
+        }
+
+        Eigen::VectorXd prod(dim_res);
+        Eigen::VectorXd local_prod(dim_local_res_vec[rank]);
+
+        while(res>tol and niter<max_it){
+            // prod A*uw
+            //popoliamo local_prod          
+            local_prod =  A.middleRows(dim_cum_vec[rank], dim_local_res_vec[rank])* uw;
+
+            //gatherv di prod
+            MPI_Allgatherv (local_prod.data(), dim_local_res_vec[rank], MPI_DOUBLE, prod.data(), dim_local_res_vec.data(), 
+                      dim_cum_vec.data(), MPI_DOUBLE, MPI_COMM_WORLD);
+
+            v=b-prod;
+            res=v.lpNorm<Eigen::Infinity>();
+            uw=uw+precondAction(b-prod);
+            resinf_vec.push_back(res);
+            niter++;
+
+        }
+        unsigned int solves = this->traits_.solves();
+        MPI_Allreduce(MPI_IN_PLACE, &solves, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
+
+        auto end = std::chrono::steady_clock::now();
+        double time=std::chrono::duration_cast<std::chrono::seconds>(end - start).count();
+
+        if(rank==0){
+            std::cout<<"niter: "<<niter<<std::endl;
+            std::cout<<"solves: "<<solves<<std::endl;
+            std::cout <<"time in seconds: "<< time<<std::endl;
+        }
+
+        SolverResults res_obj(uw,solves,time, this->traits_, this->DataDD);
+
+        return res_obj;
+    };
 
     Eigen::VectorXd precondAction(const SpMat& x)
     {
@@ -231,17 +324,15 @@ class PipeParallel_ParLA : public RasPipelined<PipeParallel_ParLA,ParLA>
       unsigned int subt_sx_ = this->traits_.subt_sx(); 
       unsigned int it_waited_ = this->traits_.it_waited(); 
       unsigned int solves_ = this->traits_.solves(); 
+      
+      int dim_res{static_cast<int>(this->domain.nln()*this->domain.nt()*this->domain.nx()*2)};
+      int dim_k{static_cast<int>(domain.nln()*DataDD.sub_sizes()[0]*DataDD.sub_sizes()[1]*2)};
 
-      if(this->DataDD.nsub_x() % size != 0){
-          std::cerr<<"sub_x not proportional to number of processes chosen"<<std::endl;
-      }
-      int partition = this->DataDD.nsub_x() / size;  
-
-      Eigen::VectorXd z=Eigen::VectorXd::Zero(this->domain.nln()*this->domain.nt()*this->domain.nx()*2);
-      double tol_sx=this->traits_.tol_pipe_sx();
+      Eigen::VectorXd z=Eigen::VectorXd::Zero(dim_res);
+      Eigen::VectorXd zero=Eigen::VectorXd::Zero(dim_res);
       unsigned int it_wait=this->traits_.it_wait();
 
-      unsigned int sx1= check_sx(x,tol_sx);
+      unsigned int sx1= check_sx(x);
       unsigned int f=0;
       if (sx1 >subt_sx_ and sx1<=this->DataDD.nsub_t()){
           subt_sx_=sx1;
@@ -260,26 +351,70 @@ class PipeParallel_ParLA : public RasPipelined<PipeParallel_ParLA,ParLA>
           else if(f==0 and it_waited_<it_wait)
               it_waited_++;
       } 
-      // nsubt > = subt_sx+2 hypotesis
+      
 
       unsigned int dx=subt_sx_+zone_;
+/*
+    core principali (core che lavorano su una striscia temporale): per forza uno in seqla, piu di uno in paral
+    // nsubt > = subt_sx+2 hypotesis
+
+*/
 
       
-      auto zonematrix=matrix_domain_(Eigen::seq(subt_sx_-1,dx-2),Eigen::seq(rank*partition, (rank+1)*partition-1));
+      auto zonematrix=matrix_domain_(Eigen::seq(subt_sx_-1,dx-2),Eigen::seq(rank%partition_,rank%partition_));//Eigen::seq(i_group_la*partition_, (i_group_la+1)*partition_-partition_));
+      
+
       Eigen::VectorXi sub_in_zone=zonematrix.reshaped();
       solves_+=sub_in_zone.size();
 
-      Eigen::VectorXd uk(this->domain.nln()*this->DataDD.sub_sizes()[0]*this->DataDD.sub_sizes()[1]*2);
+      Eigen::VectorXd uk(dim_k);
+
+ 
+      Eigen::VectorXd prod1(dim_k);  //Rk*x
+      Eigen::VectorXd local_prod1(dim_local_res_vec1_[rank]);
+      Eigen::VectorXd prod2(dim_res);  //Rtilde'*uk
+      Eigen::VectorXd local_prod2(dim_local_res_vec2_[rank]);
 
       for(unsigned int k:sub_in_zone){
           Eigen::SparseLU<SpMat > lu;
           lu.compute(this->local_mat.getAk(k));
           auto temp = this->local_mat.getRk(k);
-          uk = lu.solve(temp.first*x);
-          z=z+(temp.second.transpose())*uk;
+
+          //prod1 temp.first*x
+          local_prod1 =  temp.first.middleRows(dim_cum_vec1_[rank], dim_local_res_vec1_[rank])* x;
+      
+          MPI_Gatherv (local_prod1.data(), dim_local_res_vec1_[rank], MPI_DOUBLE, prod1.data(), dim_local_res_vec1_.data(), 
+                      dim_cum_vec1_.data() , MPI_DOUBLE, rank % partition_ , MPI_COMM_WORLD);
+          
+          if(rank < partition_)
+            for(int dest=rank+partition_; dest<size; dest+=partition_)
+              MPI_Send (prod1.data(), dim_k, MPI_DOUBLE, dest, 0, MPI_COMM_WORLD);                                                  
+          else
+             MPI_Recv (prod1.data(), dim_k, MPI_DOUBLE, rank%partition_, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+          uk = lu.solve(prod1);
+
+          //prod2  (temp.second.transpose())*uk
+          local_prod2 =  temp.second.transpose().middleRows(dim_cum_vec2_[rank], dim_local_res_vec2_[rank])* uk;
+      
+          MPI_Gatherv (local_prod2.data(), dim_local_res_vec2_[rank], MPI_DOUBLE, prod2.data(), dim_local_res_vec2_.data(), 
+                      dim_cum_vec2_.data() , MPI_DOUBLE, rank % partition_ , MPI_COMM_WORLD);
+          
+          if(rank < partition_)
+            for(int dest=rank+partition_; dest<size; dest+=partition_)
+              MPI_Send (prod2.data(), dim_res, MPI_DOUBLE, dest, 1, MPI_COMM_WORLD);                                                  
+          else
+             MPI_Recv (prod2.data(), dim_res, MPI_DOUBLE, rank%partition_, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+          z=z+prod2;
       }
 
-      MPI_Allreduce(MPI_IN_PLACE, z.data(), this->domain.nln()*this->domain.nt()*this->domain.nx()*2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);   
+      if(rank<this->partition_)
+        MPI_Allreduce(MPI_IN_PLACE, z.data(), domain.nln()*domain.nt()*domain.nx()*2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+      else
+        MPI_Allreduce(zero.data(), z.data(), domain.nln()*domain.nt()*domain.nx()*2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+        // zero è brutto, in alternativa fare all reduce + waitall per far conoscere a 0 e 1, e poi fare bcast per far conoscere 2 3
+
 
       this->traits_.setZone(zone_);
       this->traits_.setSolves(solves_);
@@ -291,13 +426,18 @@ class PipeParallel_ParLA : public RasPipelined<PipeParallel_ParLA,ParLA>
     };
 
 
-    unsigned int check_sx(const Eigen::VectorXd& v,double tol_sx)
+    unsigned int check_sx(const Eigen::VectorXd& v)
     {
-      int np = this->local_mat.sub_assignment().np();
-      int partition = this->DataDD.nsub_x() / np;  
-      int rank = this->local_mat.rank();
+      int rank{0},size{0};
+      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+      MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+      //int dim_res{static_cast<int>(this->domain.nln()*this->domain.nt()*this->domain.nx()*2)};
+      int dim_k{static_cast<int>(domain.nln()*DataDD.sub_sizes()[0]*DataDD.sub_sizes()[1]*2)};
+
+
       unsigned int subt_sx_ = this->traits_.subt_sx(); 
-      //questi tre valori perche devo calcolarli sempre? non sarebbe meglio metterli come membri (anche privati)
+      double tol_sx = this->traits_.tol_pipe_sx(); 
 
       unsigned int sx1=subt_sx_;
       if (subt_sx_>this->DataDD.nsub_t()){
@@ -306,13 +446,26 @@ class PipeParallel_ParLA : public RasPipelined<PipeParallel_ParLA,ParLA>
           return 0;
       }
       int fail=0;
-      Eigen::VectorXd res(this->domain.nln()*this->DataDD.sub_sizes()[0]*this->DataDD.sub_sizes()[1]*2);
+      Eigen::VectorXd res(dim_k);
+      Eigen::VectorXd local_prod3(dim_local_res_vec1_[rank]);
 
-      // posso far fare questo controllo un po ad ognuno dei rank, da defnire però l'intersezione tra i e quello che il rank puo vedere
+      auto zonematrix=matrix_domain_(Eigen::seq(subt_sx_-1,subt_sx_-1),Eigen::seq(rank%partition_,rank%partition_));
+      Eigen::VectorXi subsx_in_zone=zonematrix.reshaped();  
 
-      //for(size_t i=subt_sx_;i<=DataDD.nsub_t()*(DataDD.nsub_x()-1)+1;i+=DataDD.nsub_t()){
-      for(size_t i=subt_sx_+this->DataDD.nsub_t()*partition*rank; i<=subt_sx_+this->DataDD.nsub_t()*partition*(rank +1)-1; i+=this->DataDD.nsub_t()){
-          res=this->local_mat.getRk(i).first*v;
+      for(unsigned int i: subsx_in_zone){
+          //res: this->local_mat.getRk(i).first*v
+          local_prod3 =  this->local_mat.getRk(i).first.middleRows(dim_cum_vec1_[rank], dim_local_res_vec1_[rank])* v;
+      
+          MPI_Gatherv (local_prod3.data(), dim_local_res_vec1_[rank], MPI_DOUBLE, res.data(), dim_local_res_vec1_.data(), 
+                      dim_cum_vec1_.data() , MPI_DOUBLE, rank % partition_ , MPI_COMM_WORLD);
+          
+          if(rank < partition_)
+            for(int dest=rank+partition_; dest<size; dest+=partition_)
+              MPI_Send (res.data(), dim_k, MPI_DOUBLE, dest, 0, MPI_COMM_WORLD);                                                  
+          else
+             MPI_Recv (res.data(), dim_k, MPI_DOUBLE, rank%partition_, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+
           auto err= res.lpNorm<Eigen::Infinity>();
           if(err>tol_sx){
               fail=1;
@@ -320,7 +473,13 @@ class PipeParallel_ParLA : public RasPipelined<PipeParallel_ParLA,ParLA>
           }
       }
       //pensarlo come allrduce
-      MPI_Allreduce(MPI_IN_PLACE, &fail, 1, MPI_INT, MPI_PROD, MPI_COMM_WORLD);
+
+      int base{1};
+      if(rank<this->partition_)
+        MPI_Allreduce(MPI_IN_PLACE, &fail, 1, MPI_INT, MPI_PROD, MPI_COMM_WORLD);
+      else
+        MPI_Allreduce(&base, &fail, 1, MPI_INT, MPI_PROD, MPI_COMM_WORLD);
+
       if(fail==0)
           sx1++;
       return sx1;
@@ -336,10 +495,46 @@ class PipeSequential : public RasPipelined<PipeSequential,SeqLA>
      RasPipelined<PipeSequential,SeqLA>(dom,dec,local_matrices,traits)
       { };
 
+
+    SolverResults solve(const SpMat& A, const SpMat& b) override
+    {
+        
+        auto start = std::chrono::steady_clock::now();
+        double tol=this->traits_.tol();
+        unsigned int max_it=this->traits_.max_it();
+        double res=tol+1;
+        std::vector<double> resinf_vec;   //non è nemmeno relativo, ne precondz. Controllare.
+        unsigned int niter=0;
+
+        Eigen::VectorXd uw=Eigen::VectorXd::Zero(this->domain.nln()*this->domain.nt()*this->domain.nx()*2);
+        Eigen::VectorXd v(this->domain.nln()*this->domain.nt()*this->domain.nx()*2);
+
+        while(res>tol and niter<max_it){
+            v=b-A*uw;
+            res=v.lpNorm<Eigen::Infinity>();
+            uw=uw+precondAction(b-A*uw);
+            resinf_vec.push_back(res);
+            niter++;
+
+        }
+        unsigned int solves = this->traits_.solves();
+
+        auto end = std::chrono::steady_clock::now();
+        double time=std::chrono::duration_cast<std::chrono::seconds>(end - start).count();
+
+        std::cout<<"niter: "<<niter<<std::endl;
+        std::cout<<"solves: "<<solves<<std::endl;
+        std::cout <<"time in seconds: "<< time<<std::endl;
+        
+
+        SolverResults res_obj(uw,solves,time, this->traits_, this->DataDD);
+
+        return res_obj;
+    };
+
     Eigen::VectorXd precondAction(const SpMat& x) 
     {
         Eigen::VectorXd z=Eigen::VectorXd::Zero(domain.nln()*domain.nt()*domain.nx()*2);
-        double tol_sx=this->traits_.tol_pipe_sx();
         unsigned int it_wait=this->traits_.it_wait();
 
         unsigned int zone_ = this->traits_.zone(); 
@@ -347,7 +542,7 @@ class PipeSequential : public RasPipelined<PipeSequential,SeqLA>
         unsigned int it_waited_ = this->traits_.it_waited(); 
         unsigned int solves_ = this->traits_.solves(); 
 
-        unsigned int sx1= check_sx(x,tol_sx);
+        unsigned int sx1= check_sx(x);
         unsigned int f=0;
         if (sx1 >subt_sx_ and sx1<=DataDD.nsub_t()){
             subt_sx_=sx1;
@@ -394,9 +589,10 @@ class PipeSequential : public RasPipelined<PipeSequential,SeqLA>
         return z;
     }
 
-    unsigned int check_sx(const Eigen::VectorXd& v, double tol_sx) 
+    unsigned int check_sx(const Eigen::VectorXd& v) 
     {
         unsigned int subt_sx_ = this->traits_.subt_sx(); 
+        double tol_sx = this->traits_.tol_pipe_sx(); 
         unsigned int sx1=subt_sx_;
         if (subt_sx_>DataDD.nsub_t()){
             std::cout<<subt_sx_<<std::endl;

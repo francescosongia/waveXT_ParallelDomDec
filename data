@@ -19,7 +19,7 @@
 
   [./traits]
     method = PIPE
-    linear_algebra = SeqLA
+    linear_algebra = ParLA
   [../]
 	
 [../]
