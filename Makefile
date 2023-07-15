@@ -1,4 +1,4 @@
-PROJECT_ROOT=/home/scientific-vm/Desktop/branch_pacs/projectPACS
+PROJECT_ROOT=/home/scientific-vm/Desktop/projectPACS
 
 CPPFLAGS = -I $(PROJECT_ROOT)/include/
 
