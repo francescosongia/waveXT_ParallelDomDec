@@ -161,7 +161,7 @@ int main(int argc, char **argv) {
     auto res = res_obj.getUW();
     if (rank==0){
         std::cout<<res(0)<<std::endl;
-        std::string f= folder_root+"u.txt";
+        std::string f= "results/u.txt"; 
         saveVec_totxt(f,res);
 
         res_obj.formatGNU(0,filename_coord,nx*nt,nln);

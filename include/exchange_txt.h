@@ -38,7 +38,8 @@ SpMat readMat_fromtxt(const std::string& filename, unsigned int rows,unsigned in
 //void saveSMat_totxt(const std::string& filename,const SpMat& A);
 
 void saveVec_totxt(const std::string& filename,const Eigen::VectorXd& v) {
-    std::ofstream file(filename);
+    std::ofstream file;
+    file.open(filename);
     if (file.is_open()){
         for(Eigen::Index i=0;i<v.size();++i) {
             file << v[i] << '\n';

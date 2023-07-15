@@ -19,9 +19,9 @@
 
     std::ofstream output;
     if(uw_flag==0)
-      output.open("u_gnuplot.txt");
+      output.open("results//u_gnuplot.txt");
     else
-      output.open("w_gnuplot.txt");
+      output.open("results//w_gnuplot.txt");
 
     if(coord.is_open() && output.is_open()){
     
