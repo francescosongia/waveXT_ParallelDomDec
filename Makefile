@@ -1,12 +1,15 @@
-PROJECT_ROOT=/home/scientific-vm/Desktop/projectPACS
+PROJECT_ROOT=$(CURDIR)
 
 CPPFLAGS = -I $(PROJECT_ROOT)/include/
 
-SRCS := $(wildcard ./*.cpp)
-FILE_SEQ := ./main.cpp
-FILE_PAR := ./main_parallel.cpp
-SRCS1 := $(filter-out $(FILE_SEQ),$(SRCS))
-SRCS2 := $(filter-out $(FILE_PAR),$(SRCS))
+SRC_DIR := $(PROJECT_ROOT)/src
+
+SRCS := $(wildcard $(SRC_DIR)/*.cpp)
+
+MAIN_FILE := $(PROJECT_ROOT)/main.cpp
+MAIN_PARALLEL_FILE := $(PROJECT_ROOT)/main_parallel.cpp
+SRCS1 := $(SRCS) $(MAIN_PARALLEL_FILE)
+SRCS2 := $(SRCS) $(MAIN_FILE)
 
 OBJS1=$(SRCS1:.cpp=.o)
 OBJS2=$(SRCS2:.cpp=.o)

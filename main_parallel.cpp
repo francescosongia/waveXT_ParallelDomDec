@@ -13,9 +13,7 @@ int main(int argc, char **argv) {
     const std::string filename = command_line.follow("data", 2, "-f", "--file");
     GetPot datafile(filename.c_str());
 
-    std::string folder_root = "//home//scientific-vm//Desktop//branch_pacs//projectPACS//";
-                                //"//home//scientific-vm//Desktop//projectPACS//";
-
+    std::string folder_root =  ".//";
     unsigned int nx = datafile("parameters/problem/nx", 20);
     unsigned int nt = datafile("parameters/problem/nt", 20);
     unsigned int nln = datafile("parameters/problem/nln", 6);
@@ -48,10 +46,9 @@ int main(int argc, char **argv) {
     //--------------------------------------------------------------------
     //NEXT
     
-    // sistemare makefile, get directoty .sh
-    // sistemare include  OK
+    // sistemare makefile SISTEMATO DIRS, AGGIUNGERE PIU DATA FILE 
     // opzione verbose
-    // commentare e ordinare file (rimuovere cpp che non servono)
+    // commentare 
 
     // assert
     // prova con problma piu grosso, altri test cases (e dividere i data file di getpot?)
@@ -59,7 +56,6 @@ int main(int argc, char **argv) {
     // controllare se aggiungere const (nei paramentri delle funzioni), capire e usare std::move                             
     // gestire altri modi di parallelizzare (matrice dei sub assegnati). parto da commento in subassignment e poi localmatrices   OK CUSTOM MAT
     // postproccesing (senza codice, confrontare però la varie policy in termini di tempo e solves)
-    // aggiungere nel getpot anche iter e toll  OK
     //--------------------------------------------------------------------
     
     
