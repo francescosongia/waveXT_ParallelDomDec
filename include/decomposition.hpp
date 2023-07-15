@@ -35,14 +35,11 @@ private:
   unsigned int nsub_x_;
   unsigned int nsub_t_;
   double theta_;
-  std::vector<unsigned int> sub_sizes_; //[n,m]
+  std::vector<unsigned int> sub_sizes_; //[n,m] [dim_subx, dim_subt]
 
-  // inserire una struttura che dia l'informazione di come sono numerati i sub,
-  // in che direzione
   Eigen::MatrixXi overlap_back_;
   Eigen::MatrixXi overlap_forw_;
-
-
+  
   std::vector<unsigned int> start_elem_;
 
 public:
@@ -57,8 +54,8 @@ public:
 
 
   void createDec(double, double); // crea i vettori sopra, prima decide la
-                            // decomposizione e crea m, n. Se dimensione
-                            // genereica dovrei passare un vettore di int
+                                  // decomposizione e crea m, n.
+                            
   std::tuple<unsigned int, unsigned int, unsigned int,unsigned int,unsigned int> get_info_subK(unsigned int k) const;
   std::vector<int> basic_info_decomposition() const;
 };

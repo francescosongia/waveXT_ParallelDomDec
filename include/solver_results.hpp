@@ -7,6 +7,8 @@
 
 class SolverResults {
 
+  // recap of all solver info and postprocessing
+
 public:
   SolverResults(): uw_(1), solves_(0), time_(0.0), max_it_(0), tol_(0.0),tol_pipe_sx_(0.0), it_wait_(0),nsub_x_(0), nsub_t_(0),sub_sizes_(2), max_overlaps_(2) {};
   SolverResults(const Eigen::VectorXd& uw, unsigned int solves, double time, const SolverTraits& straits, const Decomposition& dec)

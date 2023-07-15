@@ -25,10 +25,10 @@ public:
        {};
 
   SolverResults operator()(const std::string& method, const SpMat& A,const SpMat &b){
-    auto method_ptr = this->createSolver(method, domain,DataDD,local_matrices,traits_); // each method obj is initialized with traits
+    auto method_ptr = this->createSolver(method, domain,DataDD,local_matrices,traits_); // each method obj is initialized 
     
     if (method_ptr == nullptr)
-      return SolverResults(Eigen::VectorXd::Zero(1),0,0,traits_,DataDD);//std::numeric_limits<double>::quiet_NaN();
+      return SolverResults(Eigen::VectorXd::Zero(1),0,0,traits_,DataDD);
     
     return method_ptr->solve(A,b);
   };

@@ -9,7 +9,6 @@ template<class P,class LA>
 class RasPipelined : public DomainDecSolverBase<P,LA> {
 public:
   RasPipelined(Domain dom, const Decomposition& dec, LocalMatrices<LA> local_matrices,const SolverTraits& traits) : 
-        //DomainDecSolverBase<P,LA>(dom,dec,local_matrices,traits), matrix_domain_(dec.nsub_t(),dec.nsub_x())
         DomainDecSolverBase<P,LA>(dom,dec,local_matrices,traits), matrix_domain_(dec.nsub_t(),dec.nsub_x())
         {
             Eigen::VectorXi list=Eigen::VectorXi::LinSpaced(dec.nsub(),1,dec.nsub());  
@@ -19,6 +18,7 @@ public:
 
   SolverResults solve(const SpMat& A, const SpMat& b) override
     {
+        // initialize paramters for zone evolution 
         this->traits_.setZone(2);
         this->traits_.setSubtSx(1);
         this->traits_.setItWaited(0);
@@ -39,7 +39,8 @@ protected:
         P func_wrapper(this->domain,this->DataDD,this->local_mat,this->traits_);
 
         auto res=func_wrapper.precondAction(x); 
-
+        
+        // update parameters for zone evolution 
         this->traits_.setZone(func_wrapper.traits().zone());
         this->traits_.setSubtSx(func_wrapper.traits().subt_sx());
         this->traits_.setItWaited(func_wrapper.traits().it_waited());
@@ -57,6 +58,25 @@ protected:
 
 };
 
+// --------------------------------------------------------------------------------
+// PARALLEL
+//### PipeParallel_SeqLA: sequential linear algebra but subs assigned to different processes
+//      precondAction
+//      check_sx
+//      solve
+
+//### PipeParallel_ParLA: parallel linear algebra and subs assigned to different processes
+//      precondAction
+//      check_sx
+//      solve
+// --------------------------------------------------------------------------------
+// SEQUENTIAL 
+//### PipeSequential: sequential linear algebra and subs assigned only to one process
+//      precondAction
+//      check_sx
+//      solve
+// --------------------------------------------------------------------------------
+ 
 
 class PipeParallel_SeqLA : public RasPipelined<PipeParallel_SeqLA,SeqLA>
 {
@@ -215,6 +235,7 @@ class PipeParallel_ParLA : public RasPipelined<PipeParallel_ParLA,ParLA>
   private:
     int partition_;
 
+    // vectors used to store local dimensions for parallel linear algebra computations
     std::vector<int> dim_local_res_vec1_;
     std::vector<int> dim_cum_vec1_;
     std::vector<int> dim_local_res_vec2_;

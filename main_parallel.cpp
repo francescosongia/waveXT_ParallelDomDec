@@ -1,7 +1,4 @@
-#include "local_matrices.hpp"
 #include "domaindec_solver_factory.hpp"
-#include "solver_traits.h"
-#include "solver_results.hpp"
 #include <iostream>
 #include <vector>
 #include "Eigen/Dense"
@@ -27,11 +24,15 @@ int main(int argc, char **argv) {
 
     unsigned int nsub_x = datafile("parameters/decomposition/nsubx", 2);
     unsigned int nsub_t = datafile("parameters/decomposition/nsubt", 3);
-    int n = datafile("parameters/decomposition/size_subx", 0);
-    int m = datafile("parameters/decomposition/size_subt", 0);
+    int n = datafile("parameters/decomposition/size_subx", 0);  // si potrebbero togliere anche dal getpot, facciamo fare sempre in automatico 
+    int m = datafile("parameters/decomposition/size_subt", 0);  // senza fornire n e m al costruttore
 
     std::string method= datafile("parameters/traits/method", "RAS");
     std::string la= datafile("parameters/traits/linear_algebra", "SeqLA");
+    unsigned int max_it = datafile("parameters/traits/max_iter", 100);
+    double tol = datafile("parameters/traits/tol", 1e-10);
+    double tol_pipe_sx = datafile("parameters/traits/tol_pipe_sx", 1e-10);
+    double it_wait = datafile("parameters/traits/it_wait_pipe", 3);
 
     std::string test_matrices=datafile("file_matrices/test", "test1");
     std::string filenameA = folder_root+"problem_matrices//"+test_matrices+"//A.txt";
@@ -44,19 +45,22 @@ int main(int argc, char **argv) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
+    //--------------------------------------------------------------------
     //NEXT
     
     // sistemare makefile
-    // sistemare include
+    // sistemare include  OK
     // opzione verbose
     // commentare e ordinare file (rimuovere cpp che non servono)
 
     // assert
-    // prova con problma piu grosso, altri test cases e dividere i data file di getpot
-    // aggiungere const                             
-    // gestire altri modi di parallelizzare (matrice dei sub assegnati, caso in cui non sono divisibili)
+    // prova con problma piu grosso, altri test cases (e dividere i data file di getpot?)
+    // controllare rowmajor ordering of spmat (parto da commento in localmatrices)
+    // controllare se aggiungere const (nei paramentri delle funzioni), capire e usare std::move                             
+    // gestire altri modi di parallelizzare (matrice dei sub assegnati). parto da commento in subassignment e poi localmatrices
     // postproccesing (senza codice, confrontare però la varie policy in termini di tempo e solves)
-    // aggiungere nel getpot anche iter e toll
+    // aggiungere nel getpot anche iter e toll  OK
+    //--------------------------------------------------------------------
     
     
     // qui sto facendo if con errori, sarebbe da proporre versione 
@@ -102,10 +106,7 @@ int main(int argc, char **argv) {
     SpMat b=readMat_fromtxt(filenameb,nt*nx*nln*2,1);
     std::cout<<"get problem matrices, rank: "<<rank<<std::endl;
 
-    double tol{1e-10};
-    unsigned int max_it{50};
-    SolverTraits traits(max_it,tol);
-
+    SolverTraits traits(max_it,tol,tol_pipe_sx,it_wait);
 
     std::cout<<"method used: "<<method<<", rank: "<<rank<<std::endl;
     std::cout<<"LA policy used: "<<la<<", rank: "<<rank<<std::endl;    

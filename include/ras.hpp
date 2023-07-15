@@ -1,17 +1,13 @@
 #ifndef RAS_HPP_
 #define RAS_HPP_
 
-#include <utility>
-
 #include "domaindec_solver_base.hpp"
-#include <iostream>
 
 
 template<class P, class LA>
 class Ras : public DomainDecSolverBase<P,LA>{
 
 public:
-
   Ras(Domain dom, const Decomposition& dec,const LocalMatrices<LA> local_matrices,const SolverTraits& traits) : 
     DomainDecSolverBase<P,LA>(dom,dec,local_matrices,traits)
     {};
@@ -24,17 +20,30 @@ public:
 
 
 protected:
-  
   Eigen::VectorXd precondAction(const SpMat& x) override
   {
     P func_wrapper(this->domain,this->DataDD,this->local_mat,this->traits_);
     return func_wrapper.precondAction(x);
-    //PolicyFunctionWrapper<P> func_wrapper;
-    //return func_wrapper.precondAction(x);
   };
 
 };
 
+
+// --------------------------------------------------------------------------------
+// PARALLEL
+//### Parallel_SeqLA: sequential linear algebra but subs assigned to different processes
+//      precondAction
+//      solve
+
+//### Parallel_ParLA: parallel linear algebra and subs assigned to different processes
+//      precondAction
+//      solve
+// --------------------------------------------------------------------------------
+// SEQUENTIAL 
+//### Sequential: sequential linear algebra and subs assigned only to one process
+//      precondAction
+//      solve
+// --------------------------------------------------------------------------------
  
 
 class Parallel_SeqLA : public Ras<Parallel_SeqLA,SeqLA>
@@ -94,11 +103,11 @@ class Parallel_SeqLA : public Ras<Parallel_SeqLA,SeqLA>
       unsigned int solves{0};
       double time{0.0};
       if(rank==0){
-      std::cout<<"niter: "<<niter<<std::endl;
-      solves = niter*this->DataDD.nsub();
-      std::cout<<"solves: "<<solves<<std::endl;
-      time = std::chrono::duration_cast<std::chrono::seconds>(end - start).count();
-      std::cout <<"time in seconds: "<< time<<std::endl;
+        std::cout<<"niter: "<<niter<<std::endl;
+        solves = niter*this->DataDD.nsub();
+        std::cout<<"solves: "<<solves<<std::endl;
+        time = std::chrono::duration_cast<std::chrono::seconds>(end - start).count();
+        std::cout <<"time in seconds: "<< time<<std::endl;
       }
       SolverResults res_obj(uw1,solves,time, this->traits_, DataDD);
 
@@ -116,7 +125,6 @@ public:
   Eigen::VectorXd precondAction(const SpMat& x) 
   {
     Eigen::VectorXd z=Eigen::VectorXd::Zero(domain.nln()*domain.nt()*domain.nx()*2);
-    //Eigen::VectorXd xk(domain.nln()*DataDD.sub_sizes()[0]*DataDD.sub_sizes()[1]*2);
     Eigen::VectorXd uk(domain.nln()*DataDD.sub_sizes()[0]*DataDD.sub_sizes()[1]*2);
     for(unsigned int k=1;k<=DataDD.nsub();++k){
 
@@ -175,7 +183,8 @@ class Parallel_ParLA : public Ras<Parallel_ParLA,ParLA>
 {
   private:
     int partition_;
-
+    
+    // vectors used to store local dimensions for parallel linear algebra computations
     std::vector<int> dim_local_res_vec1_;
     std::vector<int> dim_cum_vec1_;
     std::vector<int> dim_local_res_vec2_;
@@ -188,7 +197,6 @@ class Parallel_ParLA : public Ras<Parallel_ParLA,ParLA>
      dim_cum_vec1_(local_matrices.sub_assignment().np(),0), dim_local_res_vec2_(local_matrices.sub_assignment().np(),0), 
      dim_cum_vec2_(local_matrices.sub_assignment().np(),0)
      {
-
       int rank{0},size{0};
       MPI_Comm_rank(MPI_COMM_WORLD, &rank);
       MPI_Comm_size(MPI_COMM_WORLD, &size);
@@ -272,8 +280,6 @@ class Parallel_ParLA : public Ras<Parallel_ParLA,ParLA>
           
           }
 
-
-      
       if(rank<this->partition_)
         MPI_Allreduce(MPI_IN_PLACE, z.data(), domain.nln()*domain.nt()*domain.nx()*2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
       else
@@ -282,19 +288,6 @@ class Parallel_ParLA : public Ras<Parallel_ParLA,ParLA>
 
       return z;
     }
-
-/*
-    np4 subx2. parla ok, seqla devo imporre subx=np (aumento subx)
-    np2 subx1  pala non si puo, seqla si ma devo aumentare subx
-
-    np2 subx2. seqla ok, parla non va bene
-
-    np4 subx4 seqla ok, parla devo ridurre subx a 2
-
-    npgrande subxpiccolo ma divisibile, ok parla, seqla devo aumnetare subx
-  */
-
-
 
     SolverResults solve(const SpMat& A, const SpMat& b)
     {

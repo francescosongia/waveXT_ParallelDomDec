@@ -5,7 +5,8 @@ class SolverTraits {
 
 public:
     SolverTraits(unsigned int max_it, double tol, double tol_pipe_sx, unsigned int it_wait)
-            : max_it_(max_it), tol_(tol), tol_pipe_sx_(tol_pipe_sx), it_wait_(it_wait) {};
+            : max_it_(max_it), tol_(tol), tol_pipe_sx_(tol_pipe_sx), it_wait_(it_wait),
+                solves_(0), subt_sx_(1), zone_(2), it_waited_(0) {};
 
     SolverTraits(unsigned int max_it, double tol)
             : max_it_(max_it), tol_(tol), tol_pipe_sx_(1e-10), it_wait_(3),

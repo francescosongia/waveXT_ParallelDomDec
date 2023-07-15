@@ -1,7 +1,6 @@
 #ifndef LOCAL_MATRICES_HPP_
 #define LOCAL_MATRICES_HPP_
 
-#include "domain.hpp"
 #include "decomposition.hpp"
 #include "sub_assignment.hpp"
 #include "solver_traits.h"
@@ -12,6 +11,10 @@
 typedef Eigen::SparseMatrix<double>
         SpMat; // declares a column-major sparse matrix type of double
 typedef Eigen::Triplet<double> T;
+
+// ABBIAMO SEMPRE USATO COLUMN MAJOR MATRICES. NELLA PARALLELIZZAZIONE LA CI SERVE PERÒ
+// ACCEDERE CON MIDDLEROWS AD ALCUNE RIGHE. CAPIRE SE È PIU EFFICIENTE SALVARE LA MATRICI 
+// COME ROW-MAJOR. IN QUESTO CASO CONTROLLARE CHE NON CAMBI NIENTE NELLE ALTRE IMPLEMENTAZIONI
 
 template<class LA>
 class LocalMatrices {
@@ -91,8 +94,7 @@ private:
     n = this->DataDD.sub_sizes()[0];
     SpMat temp(nln*m*n*2,nln*nt*nx*2);
     auto sub_division_vec = this->sub_assignment_.sub_division_vec()[this->current_rank_];
-    for(unsigned int k : sub_division_vec){
-    //for(unsigned int k=1;k<DataDD.nsub()+1;++k){     
+    for(unsigned int k : sub_division_vec){    
         k = (this->local_numbering) ? k-this->rank_group_la_*this->R_.size() : k;
         temp=this->R_[k-1]*A;
         this->localA_[k-1]=temp*(this->R_[k-1].transpose());
@@ -127,6 +129,8 @@ public:
   {
     auto sub_division_vec = this->sub_assignment_.sub_division_vec()[this->current_rank_];
     auto size_assigned = sub_division_vec.size();
+
+    // parallel framework
     if(size_assigned < this->DataDD.nsub()){     
         // ## AND ## siamo nel caso parallelizz spazio in cui assegno sopra/sotto
         // questo and lo aggiungo dopo se inserisco altra policy.
@@ -136,13 +140,13 @@ public:
         this->R_tilde_.resize(size_assigned);
         this->localA_.resize(size_assigned);
         for(unsigned int k : sub_division_vec){
-            //auto k_local = k - this->current_rank_*size_assigned; 
             auto k_local = k - this->rank_group_la_*size_assigned; 
             std::pair<SpMat, SpMat> res= this->createRK(k);
             this->R_[k_local-1]=res.first;
             this->R_tilde_[k_local-1]=res.second;
             }  
     }
+    //sequential framework
     else{
         for(unsigned int k : sub_division_vec){
             std::pair<SpMat, SpMat> res= this->createRK(k);
@@ -151,6 +155,7 @@ public:
             }
     }
   }; 
+
 
   std::pair<SpMat, SpMat> getRk(unsigned int k) const
   {
@@ -176,24 +181,11 @@ public:
     }
   };
 
+  // getters
   auto localA_created() const {return localA_created_;};
   auto rank() const {return current_rank_;};
   auto sub_assignment() const {return sub_assignment_;};
 
-
-
-
-
-  // poi piu avanti posso salvarmi gli indici e prelevare da un vettore
-  // direttamente le componenti che mi interessano: in uqesto caso basta
-  // salavarmi un vettore di coppie (i,j).
-  // Rimane da capire come ottenere Aj senza moltiplicazione con matrici R,
-  // anche qui devo capire queli (ij) tenermi pero poi dovranno essere messi nel
-  // punto giusto di una matrice e quindi devo sapaere anche la pos finale di
-  // dove mettelri, non è solo un vettore
-
-  // comunque non è detto convenga, sono già ben organizzate con matrici sparse, 
-  // già una moltiplicazione tra loro è ottimizzata per prendere comp diverse da zero
 
 
 };

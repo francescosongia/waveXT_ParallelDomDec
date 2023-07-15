@@ -1,16 +1,9 @@
-#include "domain.hpp"
-#include "decomposition.hpp"
-#include "domaindec_solver_base.hpp"
 #include "domaindec_solver_factory.hpp"
-#include "GetPot"
-#include "ras.hpp"
-#include "ras_pipelined.hpp"
-#include "solver_traits.h"
-#include "solver_results.hpp"
 #include <iostream>
 #include <vector>
 #include "Eigen/Dense"
 #include "exchange_txt.h"
+#include "GetPot"
 
 int main(int argc, char **argv) {
 
@@ -34,6 +27,10 @@ int main(int argc, char **argv) {
 
     std::string method= datafile("parameters/traits/method", "RAS");
     std::string la= datafile("parameters/traits/linear_algebra", "SeqLA");
+    unsigned int max_it = datafile("parameters/traits/max_iter", 100);
+    double tol = datafile("parameters/traits/tol", 1e-10);
+    double tol_pipe_sx = datafile("parameters/traits/tol_pipe_sx", 1e-10);
+    double it_wait = datafile("parameters/traits/it_wait_pipe", 3);
 
     std::string test_matrices=datafile("file_matrices/test", "test1");
     std::string filenameA = folder_root+"problem_matrices//"+test_matrices+"//A.txt";
@@ -57,9 +54,7 @@ int main(int argc, char **argv) {
     SpMat b=readMat_fromtxt(filenameb,nt*nx*nln*2,1);
     std::cout<<"get problem matrices"<<std::endl;
 
-    double tol{1e-10};
-    unsigned int max_it{50};
-    SolverTraits traits(max_it,tol);
+    SolverTraits traits(max_it,tol,tol_pipe_sx,it_wait);
 
     std::cout<<"method used: "<<method<<std::endl;
 

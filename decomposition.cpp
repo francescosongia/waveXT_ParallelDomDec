@@ -3,20 +3,26 @@
 #include <vector>
 #include <iostream>
 
+
 void Decomposition::createDec(double n = -1, double m = -1) {
   unsigned int nx = domain.nx();
   unsigned int nt = domain.nt();
-  if (n * nsub_x_ <= nx ||
-      m * nsub_t_ <= nt) { // controllare caso in cui m e n settati in
-                          // modo che formino sub di solo overlap
+
+  // aggiungere controllo nel caso in cui n,m sono settati da utente e tali che 
+  // formo solo sub composti da overlpa, controllare se codice funziona lo stesso
+
+  // sub sizes are not setted by user or if they exceed the max size 
+  if (n * nsub_x_ <= nx || m * nsub_t_ <= nt) { 
     double molt = 1.2;
     n = floor(nx * molt / nsub_x_);
     m = floor(nt * molt / nsub_t_);
   }
   sub_sizes_[0] = n;
   sub_sizes_[1] = m;
-  std::cout<<"n: "<<n<<"  m: "<<m<<std::endl;
-  // ora creo liste overlap e elem inizio
+  std::cout<<"size of space sub: "<<n<<"  anc time sub: "<<m<<std::endl;
+
+  
+  // create overlap structures and start_elem
 
   // average ot,ox, rest
   double ot_mean , ox_mean;
@@ -84,8 +90,7 @@ void Decomposition::createDec(double n = -1, double m = -1) {
       }
   }
 
-  //start_elem_eig = start_elem_eig.transpose().reshaped(1, nsub_t_ * nsub_x_);
-  auto temp= start_elem_eig.transpose().reshaped();//1, nsub_t_ * nsub_x_);
+  auto temp= start_elem_eig.transpose().reshaped();
   for (size_t i = 0; i < nsub_t_ * nsub_x_; ++i) {
     start_elem_[i] = temp(i, 0);
   }

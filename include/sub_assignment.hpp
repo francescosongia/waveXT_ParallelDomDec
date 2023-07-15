@@ -2,28 +2,30 @@
 #define SUB_ASSIGNMENT_HPP_
 
 #include "decomposition.hpp"
-//#include "policyLA.hpp"
 #include <iostream>
 
 template<class LA>
 class SubAssignment {
 
 public:
-/*
-  SubAssignment()
-      : np_(0), nsub_x_(0), nsub_t_(0), sub_division_(0,0), sub_division_vec_(0) {};
-*/
-
   SubAssignment(int nproc, unsigned int nsubx,unsigned int nsubt)
       : np_(nproc), nsub_x_(nsubx), nsub_t_(nsubt), sub_division_(nproc,nsubt), sub_division_vec_(nproc)
-      {};   //IF GRANDE SE NON SONO DIVISIBILI DI BLOCCARSI PRIMA
+      {};  
 
-  //per ora assumiamo solo parallelizzazione in tempo, poi si puo fare i casi con strategie diverse
-  // comunque si tratta solo di fornire una strategia per dividere i sub tra i vari core, potrei creare
-  // costruttore che legge una matrice grande come domain diviso e ogni elemnto è un numero che identifica core
+  // AGGIUNGERE FRAMWORK IN CUI NEL COSTRUTTORE PASSO MATRIX SUBDIVISION CUSTOM. LIMITARE QUESTA SCELTA
+  // SOLO SE SI USA SEQLA 
+  // se si fa evitare di fare localnumbering in local_matrices perchè non sono piu ordinate (aggiungere qui 
+  // una flag che dica se uso divisione custom, in localmatrices/createRmatrices leggo questa flag e se si non
+  // faccio localnumbering)
 
-  // con l'aggiunta di sub_division_Vec perde di importanza la matrice sub_division (che potrei pensare solo come 
-  // argomento per una versione di un costrcuttore). meglio salvarsi cosi un vector per ogni processore
+      //per ora assumiamo solo parallelizzazione in tempo, poi si puo fare i casi con strategie diverse
+      // comunque si tratta solo di fornire una strategia per dividere i sub tra i vari core, potrei creare
+      // costruttore che legge una matrice grande come domain diviso e ogni elemnto è un numero che identifica core
+
+      // con l'aggiunta di sub_division_Vec perde di importanza la matrice sub_division (che potrei pensare solo come 
+      // argomento per una versione di un costrcuttore). meglio salvarsi cosi un vector per ogni processore
+
+
 protected:
   int np_;
   int nsub_x_;
@@ -47,6 +49,7 @@ public:
 
 };
 
+// SEQUENTIAL LINEAR ALGEBRA 
 class SeqLA : public SubAssignment<SeqLA>
 {
   public:
@@ -57,7 +60,9 @@ class SeqLA : public SubAssignment<SeqLA>
      };
     void createSubDivision()
     { 
-      if (this->np_ > 1 && this->nsub_x_% this->np_ ==0 ){  //this->np_ == this->nsub_x_
+      // PARALLEL (assign subs to different cores when computing the sum in precondAction)
+      // assign each time stride to a single process.
+      if (this->np_ > 1 && this->nsub_x_% this->np_ ==0 ){  
         int partition{0};
         partition = this->nsub_x_/ this->np_;
         for(int i=0; i< this->np_; ++i){
@@ -66,25 +71,23 @@ class SeqLA : public SubAssignment<SeqLA>
           this->sub_division_(i,Eigen::seq(0,this->nsub_t_*partition-1)) = temp;
         }
       }
+      // SEQUENTIAL (all subs assigned to the same process)
       else if(this->np_ == 1){
         this->sub_division_.setZero();
         auto temp = Eigen::VectorXi::LinSpaced(this->nsub_t_*this->nsub_x_, 1, this->nsub_t_*this->nsub_x_) ;
-        this->sub_division_vec_.push_back(temp);
+        this->sub_division_vec_[0]=temp;
+        //this->sub_division_vec_.push_back(temp);
         
       }
       else{
         std::cerr<<"error in subs division among processes"<<std::endl;
       }
 
-
     };
 };
 
 
-
-
-// 2proc  2subx   -> SeqLA
-
+// PARALLEL LINEAR ALGEBRA
 class ParLA : public SubAssignment<ParLA>
 {
   public:
@@ -93,9 +96,11 @@ class ParLA : public SubAssignment<ParLA>
 
     void createSubDivision()
     {
-      // 4 process e 2 subx. quindi due proc sono i principali e hanno due aiutanti
+      // n.° process > nsubx. Assign to each time stride at least two processses. In thi way the linear 
+      // algebra computation are parallelized between them. 
+
       int partition{0};
-      partition = this->np_ / this->nsub_x_ ;  //quanti p sono assegnati a striscia temp
+      partition = this->np_ / this->nsub_x_ ;  //how many process are assigned to a single time stride
       int i_group_la{0};
 
       if (this->np_% this->nsub_x_ == 0){  
