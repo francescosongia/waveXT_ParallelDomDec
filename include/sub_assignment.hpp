@@ -65,7 +65,8 @@ public:
 
 };
 
-// SEQUENTIAL LINEAR ALGEBRA 
+// SEQUENTIAL LINEAR ALGEBRA.
+// it does not mean that all the solver is sequential, it could be parallelized by assigning the subdomains to different processes
 class SeqLA : public SubAssignment<SeqLA>
 {
   public:

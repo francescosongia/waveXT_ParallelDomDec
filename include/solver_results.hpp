@@ -26,7 +26,7 @@ public:
 
 private:
   Eigen::VectorXd uw_;
-  unsigned int solves_;
+  unsigned int solves_;  // how many times the subdomains are solved
   double time_;
 
   //solver_traits
@@ -46,10 +46,7 @@ public:
   Eigen::VectorXd getU() const {return uw_(Eigen::seq(0,uw_.size()/2 -1));};
   Eigen::VectorXd getW() const {return uw_(Eigen::seq(uw_.size()/2, uw_.size()-1));};
 
-  //funzione che creano file testo con le info
-  //void getSolverInfo() const;
-
-  //postprocessing functions to plot u,w 
+  //postprocessing functions to prepare to plot u,w 
   void formatGNU(int uw_flag, const std::string& coord_file, unsigned int n_elem, unsigned int nln) const;
   
 

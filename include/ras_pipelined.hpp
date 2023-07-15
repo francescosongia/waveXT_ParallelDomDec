@@ -10,15 +10,20 @@ class RasPipelined : public DomainDecSolverBase<P,LA> {
 public:
   RasPipelined(Domain dom, const Decomposition& dec, LocalMatrices<LA> local_matrices,const SolverTraits& traits) : 
         DomainDecSolverBase<P,LA>(dom,dec,local_matrices,traits), matrix_domain_(dec.nsub_t(),dec.nsub_x())
-        {
+        {   
+            // matrix_domain_ is a mtrix representing the domain, it will support the computations
             Eigen::VectorXi list=Eigen::VectorXi::LinSpaced(dec.nsub(),1,dec.nsub());  
-            matrix_domain_=list.transpose().reshaped(dec.nsub_t(),dec.nsub_x());  //serve traspose?
+            matrix_domain_=list.transpose().reshaped(dec.nsub_t(),dec.nsub_x());  
         };
 
 
   SolverResults solve(const SpMat& A, const SpMat& b) override
     {
-        // initialize paramters for zone evolution 
+         // uw_n+1 = uw_n + P^-1 * (b-A*uw_n)
+        // where P^-1 is the sum (over all subdomains k inside the zone) of (Rtilde_k' * A_k^-1 * R_k)
+        // for convergence check the L_Inf residual
+
+        // initialize parameters for zone evolution 
         this->traits_.setZone(2);
         this->traits_.setSubtSx(1);
         this->traits_.setItWaited(0);
@@ -36,8 +41,8 @@ protected:
 
     Eigen::VectorXd precondAction(const SpMat& x) override
     {   
+        // update the zone and then solve the local problems in the subdomains
         P func_wrapper(this->domain,this->DataDD,this->local_mat,this->traits_);
-
         auto res=func_wrapper.precondAction(x); 
         
         // update parameters for zone evolution 
@@ -52,6 +57,8 @@ protected:
 
     unsigned int check_sx(const Eigen::VectorXd& v)
     {
+        // check if the left side of the zone has reached convergence
+        // and it returns the left element of the zone (of the first time stride)
         P func_wrapper(this->domain,this->DataDD,this->local_mat,this->traits_);
         return func_wrapper.check_sx(v); 
     };
@@ -93,7 +100,7 @@ class PipeParallel_SeqLA : public RasPipelined<PipeParallel_SeqLA,SeqLA>
         double tol=this->traits_.tol();
         unsigned int max_it=this->traits_.max_it();
         double res=tol+1;
-        std::vector<double> resinf_vec;   //non è nemmeno relativo, ne precondz. Controllare.
+        std::vector<double> resinf_vec;   
         unsigned int niter=0;
 
         Eigen::VectorXd uw=Eigen::VectorXd::Zero(this->domain.nln()*this->domain.nt()*this->domain.nx()*2);
@@ -131,6 +138,7 @@ class PipeParallel_SeqLA : public RasPipelined<PipeParallel_SeqLA,SeqLA>
       MPI_Comm_rank(MPI_COMM_WORLD, &rank);
       MPI_Comm_size(MPI_COMM_WORLD, &size);
 
+      // collect the parameters for the zone evolution
       unsigned int zone_ = this->traits_.zone(); 
       unsigned int subt_sx_ = this->traits_.subt_sx(); 
       unsigned int it_waited_ = this->traits_.it_waited(); 
@@ -141,10 +149,10 @@ class PipeParallel_SeqLA : public RasPipelined<PipeParallel_SeqLA,SeqLA>
       }
       int partition = this->DataDD.nsub_x() / size;  
 
-      Eigen::VectorXd z=Eigen::VectorXd::Zero(this->domain.nln()*this->domain.nt()*this->domain.nx()*2);
+      Eigen::VectorXd z = Eigen::VectorXd::Zero(this->domain.nln()*this->domain.nt()*this->domain.nx()*2);
 
-      unsigned int it_wait=this->traits_.it_wait();
-
+      // --------- ZONE UPDATE -----------------------------------------------------
+      unsigned int it_wait = this->traits_.it_wait();
       unsigned int sx1= check_sx(x);
       unsigned int f=0;
       if (sx1 >subt_sx_ and sx1<=this->DataDD.nsub_t()){
@@ -168,7 +176,8 @@ class PipeParallel_SeqLA : public RasPipelined<PipeParallel_SeqLA,SeqLA>
       // nsubt > = subt_sx+2 hypotesis   //INSERIRE QUESTO CHECK?
 
       unsigned int dx=subt_sx_+zone_;
-    
+      // -------------------------------------------------------------------------
+
       auto zonematrix=matrix_domain_(Eigen::seq(subt_sx_-1,dx-2),Eigen::seq(rank*partition, (rank+1)*partition-1));
       Eigen::VectorXi sub_in_zone=zonematrix.reshaped();
       solves_+=sub_in_zone.size();
@@ -182,10 +191,10 @@ class PipeParallel_SeqLA : public RasPipelined<PipeParallel_SeqLA,SeqLA>
           uk = lu.solve(temp.first*x);
           z=z+(temp.second.transpose())*uk;
       }
-
+      // Each rank compute the solution over the subdomains assigned and then collect and sum all the results with Allreduce
       MPI_Allreduce(MPI_IN_PLACE, z.data(), this->domain.nln()*this->domain.nt()*this->domain.nx()*2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);   
       
-
+      // update the zone evolution parameters
       this->traits_.setZone(zone_);
       this->traits_.setSolves(solves_);
       this->traits_.setItWaited(it_waited_);
@@ -198,32 +207,35 @@ class PipeParallel_SeqLA : public RasPipelined<PipeParallel_SeqLA,SeqLA>
 
     unsigned int check_sx(const Eigen::VectorXd& v)
     {
+      // it returns the left element of the zone (of the first time stride)
       int np = this->local_mat.sub_assignment().np();
       int partition = this->DataDD.nsub_x() / np;  
       int rank = this->local_mat.rank();
       unsigned int subt_sx_ = this->traits_.subt_sx(); 
       double tol_sx = this->traits_.tol_pipe_sx(); 
 
-      unsigned int sx1=subt_sx_;
+      unsigned int sx1 = subt_sx_;
       if (subt_sx_>this->DataDD.nsub_t()){
           std::cout<<subt_sx_<<std::endl;
           std::cerr<<"err in the definiton of left edge of subdomain window"<<std::endl;
           return 0;
       }
-      int fail=0;
+      int fail = 0;
       Eigen::VectorXd res(this->domain.nln()*this->DataDD.sub_sizes()[0]*this->DataDD.sub_sizes()[1]*2);
 
       for(size_t i=subt_sx_+this->DataDD.nsub_t()*partition*rank; i<=subt_sx_+this->DataDD.nsub_t()*partition*(rank +1)-1; i+=this->DataDD.nsub_t()){
           res=this->local_mat.getRk(i).first*v;
           auto err= res.lpNorm<Eigen::Infinity>();
-          if(err>tol_sx){
-              fail=1;
+          if(err > tol_sx){
+              fail = 1;
               break;
           }
       }
+      // Each rank checks the subdomains assigned and then intersect the results with Allreduce
       MPI_Allreduce(MPI_IN_PLACE, &fail, 1, MPI_INT, MPI_PROD, MPI_COMM_WORLD);
       if(fail==0)
           sx1++;
+    
       return sx1;
     };
 
@@ -249,6 +261,8 @@ class PipeParallel_ParLA : public RasPipelined<PipeParallel_ParLA,ParLA>
      dim_cum_vec1_(local_matrices.sub_assignment().np(),0), dim_local_res_vec2_(local_matrices.sub_assignment().np(),0), 
      dim_cum_vec2_(local_matrices.sub_assignment().np(),0)
     {
+      // compute vectors for local dimensions
+      // more than one processes are assigned to the same time stride.  
       int rank{0},size{0};
       MPI_Comm_rank(MPI_COMM_WORLD, &rank);
       MPI_Comm_size(MPI_COMM_WORLD, &size);
@@ -259,7 +273,6 @@ class PipeParallel_ParLA : public RasPipelined<PipeParallel_ParLA,ParLA>
       int start_for = (rank<partition_) ? rank : rank % partition_;
 
       for(int i=start_for; i<size; i+=this->DataDD.nsub_x()){
-        // ogni process della partition sa le dimensione sue e del suo aiutante
         dim_local_res_vec1_[i] = dim_k/partition_ + (i< (dim_k % partition_));
         dim_local_res_vec2_[i] = dim_res/partition_ + (i< (dim_res % partition_));
       }   
@@ -269,11 +282,11 @@ class PipeParallel_ParLA : public RasPipelined<PipeParallel_ParLA,ParLA>
       }
     };
 
-    // A*uw1 duvuso tutti e 4 in solve
-    // precondaction dividre temp tra me e l'aiutamte
 
     SolverResults solve(const SpMat& A, const SpMat& b) override
     {
+        // in this function the computation of the residual is parallelized among all the processes
+
         int rank{0},size{0};
         MPI_Comm_rank(MPI_COMM_WORLD, &rank);
         MPI_Comm_size(MPI_COMM_WORLD, &size);
@@ -282,7 +295,7 @@ class PipeParallel_ParLA : public RasPipelined<PipeParallel_ParLA,ParLA>
         double tol=this->traits_.tol();
         unsigned int max_it=this->traits_.max_it();
         double res=tol+1;
-        std::vector<double> resinf_vec;   //non è nemmeno relativo, ne precondz. Controllare.
+        std::vector<double> resinf_vec;   
         unsigned int niter=0;
 
         int dim_res{static_cast<int>(this->domain.nln()*this->domain.nt()*this->domain.nx()*2)};
@@ -290,6 +303,7 @@ class PipeParallel_ParLA : public RasPipelined<PipeParallel_ParLA,ParLA>
         Eigen::VectorXd uw=Eigen::VectorXd::Zero(dim_res);
         Eigen::VectorXd v(dim_res);
 
+        // compute the local dimension assigned to each process
         std::vector<int> dim_local_res_vec(size,0);
         std::vector<int> dim_cum_vec(size,0);
 
@@ -303,8 +317,8 @@ class PipeParallel_ParLA : public RasPipelined<PipeParallel_ParLA,ParLA>
         Eigen::VectorXd local_prod(dim_local_res_vec[rank]);
 
         while(res>tol and niter<max_it){
-            // prod A*uw
-            //popoliamo local_prod          
+            // parallelize A*uw1
+            //compute local_prod           
             local_prod =  A.middleRows(dim_cum_vec[rank], dim_local_res_vec[rank])* uw;
 
             //gatherv di prod
@@ -353,6 +367,7 @@ class PipeParallel_ParLA : public RasPipelined<PipeParallel_ParLA,ParLA>
       Eigen::VectorXd zero=Eigen::VectorXd::Zero(dim_res);
       unsigned int it_wait=this->traits_.it_wait();
 
+      // --------- ZONE UPDATE -----------------------------------------------------
       unsigned int sx1= check_sx(x);
       unsigned int f=0;
       if (sx1 >subt_sx_ and sx1<=this->DataDD.nsub_t()){
@@ -375,25 +390,22 @@ class PipeParallel_ParLA : public RasPipelined<PipeParallel_ParLA,ParLA>
       
 
       unsigned int dx=subt_sx_+zone_;
-/*
-    core principali (core che lavorano su una striscia temporale): per forza uno in seqla, piu di uno in paral
-    // nsubt > = subt_sx+2 hypotesis
+      // ---------------------------------------------------------------------------
 
-*/
-
-      
       auto zonematrix=matrix_domain_(Eigen::seq(subt_sx_-1,dx-2),Eigen::seq(rank%partition_,rank%partition_));//Eigen::seq(i_group_la*partition_, (i_group_la+1)*partition_-partition_));
-      
-
       Eigen::VectorXi sub_in_zone=zonematrix.reshaped();
       solves_+=sub_in_zone.size();
 
       Eigen::VectorXd uk(dim_k);
 
+      /*
+      prod1: restriction over subk:            Rk * x   
+      prod2: prolungation in the whole domain: Rtilde_k' * uk  
+      */
  
-      Eigen::VectorXd prod1(dim_k);  //Rk*x
+      Eigen::VectorXd prod1(dim_k);  
       Eigen::VectorXd local_prod1(dim_local_res_vec1_[rank]);
-      Eigen::VectorXd prod2(dim_res);  //Rtilde'*uk
+      Eigen::VectorXd prod2(dim_res); 
       Eigen::VectorXd local_prod2(dim_local_res_vec2_[rank]);
 
       for(unsigned int k:sub_in_zone){
@@ -401,12 +413,14 @@ class PipeParallel_ParLA : public RasPipelined<PipeParallel_ParLA,ParLA>
           lu.compute(this->local_mat.getAk(k));
           auto temp = this->local_mat.getRk(k);
 
-          //prod1 temp.first*x
+          // prod1: temp.first*x
           local_prod1 =  temp.first.middleRows(dim_cum_vec1_[rank], dim_local_res_vec1_[rank])* x;
-      
+          
+          // gathering the result in the main core of the time stride
           MPI_Gatherv (local_prod1.data(), dim_local_res_vec1_[rank], MPI_DOUBLE, prod1.data(), dim_local_res_vec1_.data(), 
                       dim_cum_vec1_.data() , MPI_DOUBLE, rank % partition_ , MPI_COMM_WORLD);
           
+          // send the result also to the other processes of the time stride
           if(rank < partition_)
             for(int dest=rank+partition_; dest<size; dest+=partition_)
               MPI_Send (prod1.data(), dim_k, MPI_DOUBLE, dest, 0, MPI_COMM_WORLD);                                                  
@@ -415,26 +429,29 @@ class PipeParallel_ParLA : public RasPipelined<PipeParallel_ParLA,ParLA>
 
           uk = lu.solve(prod1);
 
+          // ------------------------------------------------------------------
           //prod2  (temp.second.transpose())*uk
           local_prod2 =  temp.second.transpose().middleRows(dim_cum_vec2_[rank], dim_local_res_vec2_[rank])* uk;
-      
+
+          // gathering the result in the main core of the time stride
           MPI_Gatherv (local_prod2.data(), dim_local_res_vec2_[rank], MPI_DOUBLE, prod2.data(), dim_local_res_vec2_.data(), 
                       dim_cum_vec2_.data() , MPI_DOUBLE, rank % partition_ , MPI_COMM_WORLD);
           
+          // send the result also to the other processes of the time stride
           if(rank < partition_)
             for(int dest=rank+partition_; dest<size; dest+=partition_)
               MPI_Send (prod2.data(), dim_res, MPI_DOUBLE, dest, 1, MPI_COMM_WORLD);                                                  
           else
              MPI_Recv (prod2.data(), dim_res, MPI_DOUBLE, rank%partition_, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-          z=z+prod2;
+          z = z+prod2;
       }
 
+      // The main processes of each time stride collect and sum the results with Allreduce
       if(rank<this->partition_)
         MPI_Allreduce(MPI_IN_PLACE, z.data(), domain.nln()*domain.nt()*domain.nx()*2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
       else
         MPI_Allreduce(zero.data(), z.data(), domain.nln()*domain.nt()*domain.nx()*2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-        // zero è brutto, in alternativa fare all reduce + waitall per far conoscere a 0 e 1, e poi fare bcast per far conoscere 2 3
 
 
       this->traits_.setZone(zone_);
@@ -453,10 +470,7 @@ class PipeParallel_ParLA : public RasPipelined<PipeParallel_ParLA,ParLA>
       MPI_Comm_rank(MPI_COMM_WORLD, &rank);
       MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-      //int dim_res{static_cast<int>(this->domain.nln()*this->domain.nt()*this->domain.nx()*2)};
       int dim_k{static_cast<int>(domain.nln()*DataDD.sub_sizes()[0]*DataDD.sub_sizes()[1]*2)};
-
-
       unsigned int subt_sx_ = this->traits_.subt_sx(); 
       double tol_sx = this->traits_.tol_pipe_sx(); 
 
@@ -474,7 +488,7 @@ class PipeParallel_ParLA : public RasPipelined<PipeParallel_ParLA,ParLA>
       Eigen::VectorXi subsx_in_zone=zonematrix.reshaped();  
 
       for(unsigned int i: subsx_in_zone){
-          //res: this->local_mat.getRk(i).first*v
+          // parallelize the computation of the local residual
           local_prod3 =  this->local_mat.getRk(i).first.middleRows(dim_cum_vec1_[rank], dim_local_res_vec1_[rank])* v;
       
           MPI_Gatherv (local_prod3.data(), dim_local_res_vec1_[rank], MPI_DOUBLE, res.data(), dim_local_res_vec1_.data(), 
@@ -493,8 +507,8 @@ class PipeParallel_ParLA : public RasPipelined<PipeParallel_ParLA,ParLA>
               break;
           }
       }
-      //pensarlo come allrduce
-
+    
+      // The main processes of each time stride check the subdomains assigned and then intersect the results with Allreduce
       int base{1};
       if(rank<this->partition_)
         MPI_Allreduce(MPI_IN_PLACE, &fail, 1, MPI_INT, MPI_PROD, MPI_COMM_WORLD);
@@ -524,7 +538,7 @@ class PipeSequential : public RasPipelined<PipeSequential,SeqLA>
         double tol=this->traits_.tol();
         unsigned int max_it=this->traits_.max_it();
         double res=tol+1;
-        std::vector<double> resinf_vec;   //non è nemmeno relativo, ne precondz. Controllare.
+        std::vector<double> resinf_vec; 
         unsigned int niter=0;
 
         Eigen::VectorXd uw=Eigen::VectorXd::Zero(this->domain.nln()*this->domain.nt()*this->domain.nx()*2);
@@ -563,6 +577,7 @@ class PipeSequential : public RasPipelined<PipeSequential,SeqLA>
         unsigned int it_waited_ = this->traits_.it_waited(); 
         unsigned int solves_ = this->traits_.solves(); 
 
+        // --------- ZONE UPDATE -----------------------------------------------------
         unsigned int sx1= check_sx(x);
         unsigned int f=0;
         if (sx1 >subt_sx_ and sx1<=DataDD.nsub_t()){
@@ -573,6 +588,7 @@ class PipeSequential : public RasPipelined<PipeSequential,SeqLA>
         unsigned int isend= (zone_+subt_sx_ == DataDD.nsub_t()+1) ? 1 : 0;
         if (isend==0 and zone_==0)
             zone_++;
+
         //update dx
         if(isend==0){
             if(it_waited_>=it_wait or (f==1 and it_waited_<it_wait)){
@@ -586,7 +602,7 @@ class PipeSequential : public RasPipelined<PipeSequential,SeqLA>
 
         unsigned int dx=subt_sx_+zone_;
 
-        
+        // -----------------------------------------------------------------------
         auto zonematrix=matrix_domain_(Eigen::seq(subt_sx_-1,dx-2),Eigen::seq(0,matrix_domain_.cols()-1));  
         Eigen::VectorXi sub_in_zone=zonematrix.reshaped();
         solves_+=sub_in_zone.size();
@@ -622,7 +638,6 @@ class PipeSequential : public RasPipelined<PipeSequential,SeqLA>
         }
         unsigned int fail=0;
         Eigen::VectorXd res(domain.nln()*DataDD.sub_sizes()[0]*DataDD.sub_sizes()[1]*2);
-        // posso far fare questo controllo un po ad ognuno dei rank, da defnire però l'intersezione tra i e quello che il rank puo vedere
         for(size_t i=subt_sx_;i<=DataDD.nsub_t()*(DataDD.nsub_x()-1)+1;i+=DataDD.nsub_t()){
             res=local_mat.getRk(i).first*v;
             auto err= res.lpNorm<Eigen::Infinity>();

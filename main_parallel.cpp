@@ -6,7 +6,6 @@
 #include "GetPot"
 #include <mpi.h>
 #include <random>
-//troppi include
 
 int main(int argc, char **argv) {
 
@@ -33,7 +32,7 @@ int main(int argc, char **argv) {
     unsigned int max_it = datafile("parameters/traits/max_iter", 100);
     double tol = datafile("parameters/traits/tol", 1e-10);
     double tol_pipe_sx = datafile("parameters/traits/tol_pipe_sx", 1e-10);
-    double it_wait = datafile("parameters/traits/it_wait_pipe", 3);
+    unsigned int it_wait = datafile("parameters/traits/it_wait_pipe", 3);
 
     std::string test_matrices=datafile("file_matrices/test", "test1");
     std::string filenameA = folder_root+"problem_matrices//"+test_matrices+"//A.txt";
@@ -49,7 +48,7 @@ int main(int argc, char **argv) {
     //--------------------------------------------------------------------
     //NEXT
     
-    // sistemare makefile
+    // sistemare makefile, get directoty .sh
     // sistemare include  OK
     // opzione verbose
     // commentare e ordinare file (rimuovere cpp che non servono)
@@ -100,7 +99,7 @@ int main(int argc, char **argv) {
     // ---------------------------------------------------------------------------
     /*
     // CUSTOM MATRIX, DA METTER IN GETPOT NEL CASO SI VUOLE TESTARE, PERO VA CAMBIATA LA CHIAMTA DI LOCAL MATRICES SOTTO
-    // Genera numeri casuali tra 0 e k inclusi
+    // Genera numeri casuali tra 0 e size-1 inclusi
     std::mt19937 gen(1234);  //uguale per tutti i rank
     std::uniform_int_distribution<> dis(0, size-1);
     Eigen::MatrixXi custom_matrix_sub_assignment(nsub_x, nsub_t);

@@ -34,15 +34,18 @@ private:
   Domain domain;
   unsigned int nsub_x_;
   unsigned int nsub_t_;
-  double theta_;
-  std::vector<unsigned int> sub_sizes_; //[n,m] [dim_subx, dim_subt]
+  double theta_;                        // overlap weight
+  std::vector<unsigned int> sub_sizes_; // [n,m] [dim_subx, dim_subt]
 
+  // overlap for all elements in both directions. First row for space, second for time
   Eigen::MatrixXi overlap_back_;
   Eigen::MatrixXi overlap_forw_;
   
-  std::vector<unsigned int> start_elem_;
+  // root (lower left) element number for each subdomain 
+  std::vector<unsigned int> start_elem_; 
 
 public:
+  //getters
   auto nsub_x() const { return nsub_x_; };
   auto nsub_t() const { return nsub_t_; };
   auto sub_sizes() const {return sub_sizes_;};
@@ -52,10 +55,10 @@ public:
   auto overlap_back() const {return overlap_back_;};
   auto start_elem() const {return start_elem_;};
 
-
-  void createDec(double, double); // crea i vettori sopra, prima decide la
-                                  // decomposizione e crea m, n.
+  // create the decomposition and all structures above
+  void createDec(double, double); 
                             
+  // collect recap info
   std::tuple<unsigned int, unsigned int, unsigned int,unsigned int,unsigned int> get_info_subK(unsigned int k) const;
   std::vector<int> basic_info_decomposition() const;
 };

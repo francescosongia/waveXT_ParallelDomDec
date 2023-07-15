@@ -7,7 +7,8 @@
 void Decomposition::createDec(double n = -1, double m = -1) {
   unsigned int nx = domain.nx();
   unsigned int nt = domain.nt();
-
+  
+  // (?)
   // aggiungere controllo nel caso in cui n,m sono settati da utente e tali che 
   // formo solo sub composti da overlpa, controllare se codice funziona lo stesso
 

@@ -16,15 +16,16 @@ private:
 
     unsigned int max_it_;
     double tol_;
-    double tol_pipe_sx_;
-    unsigned int it_wait_;
+    double tol_pipe_sx_;      // tol for local residual when updating the left side of the zone (PIPE)
+    unsigned int it_wait_;    // iterations to wait before moving the zone on the rigth side    (PIPE)
 
-    unsigned int solves_;
-    unsigned int subt_sx_;
+    unsigned int solves_;     // counter for how many times the subdomains are solved
+    unsigned int subt_sx_;    // PIPE evolution parameters
     unsigned int zone_;
     unsigned int it_waited_;
 
 public:
+    // getters and setters
     auto max_it() const { return max_it_; };
     auto tol() const { return tol_; };
     auto tol_pipe_sx() const { return tol_pipe_sx_; };
