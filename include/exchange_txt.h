@@ -6,6 +6,7 @@
 #include <fstream>
 
 typedef Eigen::SparseMatrix<double> SpMat; // declares a column-major sparse matrix type of double
+//typedef Eigen::SparseMatrix<double,Eigen::RowMajor> SpMat;
 
 SpMat readMat_fromtxt(const std::string& filename, unsigned int rows,unsigned int cols) {  //dim:nln*nt*nx*2
     std::vector<T> tripletList;

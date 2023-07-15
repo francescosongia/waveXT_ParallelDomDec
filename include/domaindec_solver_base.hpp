@@ -11,6 +11,9 @@
 #include <chrono>
 #include "mpi.h"
 
+
+
+//typedef Eigen::SparseMatrix<double,Eigen::RowMajor>
 typedef Eigen::SparseMatrix<double>
         SpMat; // declares a column-major sparse matrix type of double
 typedef Eigen::Triplet<double> T;

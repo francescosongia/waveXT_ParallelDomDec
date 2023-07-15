@@ -8,6 +8,8 @@
 #include <utility>
 #include <iostream>
 
+
+//typedef Eigen::SparseMatrix<double,Eigen::RowMajor>
 typedef Eigen::SparseMatrix<double>
         SpMat; // declares a column-major sparse matrix type of double
 typedef Eigen::Triplet<double> T;
@@ -125,13 +127,31 @@ public:
   };  //avoid copies with move, da capire!
 
 
+  LocalMatrices(Domain dom,Decomposition  dec,const SpMat& A, int np, int current_rank, Eigen::MatrixXi custom_mat) :
+    domain(dom),DataDD(std::move(dec)),R_(DataDD.nsub()),R_tilde_(DataDD.nsub()), localA_(DataDD.nsub()),localA_created_(0),
+    current_rank_(current_rank),rank_group_la_(current_rank),local_numbering(false), 
+    sub_assignment_(LA(np,DataDD.nsub_x(),DataDD.nsub_t(),custom_mat))
+  {   
+      
+      if(np/DataDD.nsub_x() > 1)
+        this->rank_group_la_ = current_rank_%(np/DataDD.nsub_x());
+      
+      this->sub_assignment_.createSubDivision();
+      this->createRMatrices();
+      this->createAlocal(A);
+      std::cout<<"local matrices created"<<std::endl; 
+      std::cout<<"size of R_: "<<R_.size()<<std::endl;
+
+  };  //avoid copies with move, da capire!
+
+
   void createRMatrices()
   {
     auto sub_division_vec = this->sub_assignment_.sub_division_vec()[this->current_rank_];
     auto size_assigned = sub_division_vec.size();
 
     // parallel framework
-    if(size_assigned < this->DataDD.nsub()){     
+    if(size_assigned < this->DataDD.nsub() && this->sub_assignment_.custom_matrix()==false){     
         // ## AND ## siamo nel caso parallelizz spazio in cui assegno sopra/sotto
         // questo and lo aggiungo dopo se inserisco altra policy.
         //Questo numeramento locale lo metto solo nel caso semplice in cui tutto è anche divisibile   

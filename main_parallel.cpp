@@ -5,6 +5,7 @@
 #include "exchange_txt.h"
 #include "GetPot"
 #include <mpi.h>
+#include <random>
 //troppi include
 
 int main(int argc, char **argv) {
@@ -55,9 +56,9 @@ int main(int argc, char **argv) {
 
     // assert
     // prova con problma piu grosso, altri test cases (e dividere i data file di getpot?)
-    // controllare rowmajor ordering of spmat (parto da commento in localmatrices)
+    // controllare rowmajor ordering of spmat (parto da commento in localmatrices). SE LO CAMBIO NON FUNZIONA NULLA, NON VALE LA PENA FORSE PERDERCI TEMPO
     // controllare se aggiungere const (nei paramentri delle funzioni), capire e usare std::move                             
-    // gestire altri modi di parallelizzare (matrice dei sub assegnati). parto da commento in subassignment e poi localmatrices
+    // gestire altri modi di parallelizzare (matrice dei sub assegnati). parto da commento in subassignment e poi localmatrices   OK CUSTOM MAT
     // postproccesing (senza codice, confrontare però la varie policy in termini di tempo e solves)
     // aggiungere nel getpot anche iter e toll  OK
     //--------------------------------------------------------------------
@@ -96,7 +97,25 @@ int main(int argc, char **argv) {
         return 0;
     }
 
-
+    // ---------------------------------------------------------------------------
+    /*
+    // CUSTOM MATRIX, DA METTER IN GETPOT NEL CASO SI VUOLE TESTARE, PERO VA CAMBIATA LA CHIAMTA DI LOCAL MATRICES SOTTO
+    // Genera numeri casuali tra 0 e k inclusi
+    std::mt19937 gen(1234);  //uguale per tutti i rank
+    std::uniform_int_distribution<> dis(0, size-1);
+    Eigen::MatrixXi custom_matrix_sub_assignment(nsub_x, nsub_t);
+    // Assegna valori casuali alla matrice
+    for (int i = 0; i < custom_matrix_sub_assignment.rows(); ++i) {
+        for (int j = 0; j < custom_matrix_sub_assignment.cols(); ++j) {
+            custom_matrix_sub_assignment(i, j) = dis(gen);
+        }
+    }
+    if(rank==0){
+        std::cout<<"custom matrix"<<std::endl;
+        std::cout<<custom_matrix_sub_assignment<<std::endl;
+    }
+    */
+    // ---------------------------------------------------------------------------
 
     Domain dom(nx, nt, X, T, nln);
     Decomposition DataDD(dom, nsub_x, nsub_t);
@@ -125,13 +144,19 @@ int main(int argc, char **argv) {
     }
     else if (method == "RAS" && la == "SeqLA") {
         LocalMatrices<SeqLA> local_mat(dom, DataDD, A, size, rank);
+        //LocalMatrices<SeqLA> local_mat(dom, DataDD, A, size, rank,custom_matrix_sub_assignment);
         DomainDecSolverFactory<Parallel_SeqLA,SeqLA> solver(dom,DataDD,local_mat,traits);
         res_obj=solver(method,A,b);
     }
-    else{// if (method == "PIPE" and la == "SeqLA") {
+    else if (method == "PIPE" and la == "SeqLA") {
         LocalMatrices<SeqLA> local_mat(dom, DataDD, A, size, rank);
+        //LocalMatrices<SeqLA> local_mat(dom, DataDD, A, size, rank,custom_matrix_sub_assignment);
         DomainDecSolverFactory<PipeParallel_SeqLA,SeqLA> solver(dom,DataDD,local_mat,traits);
         res_obj=solver(method,A,b);
+    }
+    else{
+        std::cerr<<"invalid method"<<std::endl;
+        return 0;
     }
 
     auto res = res_obj.getUW();
