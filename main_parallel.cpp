@@ -57,6 +57,10 @@ int main(int argc, char **argv) {
     // gestire altri modi di parallelizzare (matrice dei sub assegnati). parto da commento in subassignment e poi localmatrices   OK CUSTOM MAT
     // postproccesing (senza codice, confrontare però la varie policy in termini di tempo e solves)
     //--------------------------------------------------------------------
+
+    //------------move semantic ragionamenti----------------
+
+
     
     
     // qui sto facendo if con errori, sarebbe da proporre versione 
