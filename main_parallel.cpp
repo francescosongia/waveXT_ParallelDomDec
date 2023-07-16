@@ -58,7 +58,12 @@ int main(int argc, char **argv) {
     // postproccesing (senza codice, confrontare però la varie policy in termini di tempo e solves)
     //--------------------------------------------------------------------
 
-    //------------move semantic ragionamenti----------------
+    //------------const and move semantic ragionamenti----------------
+    // per usare const in ad esempio local matrices e Datadd od altri oggetti di grandi dimensioni bisogna vedere se questi ultimi vengono modificati
+    // ad esempio data DD potrebbe non essere modificato e i suoi membri ritornati con dei metodi const come i getters
+    // altra storia è local matrices infatti bisogna vedere se le matrici quando vengono usate come A_k[righe,colonne]*u significa che posso modificarle
+    // inoltre in alcuni casi local matrices non è passato come references
+    // tra usare le refernces e la move semantic sembra non esserci differenza nel nostro caso visto che non ci importa di trasferire la ownership
 
 
     
