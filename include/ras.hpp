@@ -49,7 +49,7 @@ protected:
 class Parallel_SeqLA : public Ras<Parallel_SeqLA,SeqLA>
 {
   public:
-    Parallel_SeqLA(Domain dom, const Decomposition& dec,const LocalMatrices<SeqLA> local_matrices,const SolverTraits& traits) :
+    Parallel_SeqLA(Domain dom, const Decomposition& dec,const LocalMatrices<SeqLA>& local_matrices,const SolverTraits& traits) :
      Ras<Parallel_SeqLA,SeqLA>(dom,dec,local_matrices,traits) {};
 
     Eigen::VectorXd 
@@ -127,7 +127,7 @@ class Parallel_SeqLA : public Ras<Parallel_SeqLA,SeqLA>
 class Sequential : public Ras<Sequential,SeqLA>
 {
 public:
-  Sequential(Domain dom, const Decomposition& dec,const LocalMatrices<SeqLA> local_matrices,const SolverTraits& traits) :
+  Sequential(Domain dom, const Decomposition& dec,const LocalMatrices<SeqLA>& local_matrices,const SolverTraits& traits) :
    Ras<Sequential,SeqLA>(dom,dec,local_matrices,traits) {};
   
   Eigen::VectorXd precondAction(const SpMat& x) 
@@ -201,7 +201,7 @@ class Parallel_ParLA : public Ras<Parallel_ParLA,ParLA>
     std::vector<int> dim_cum_vec2_;
 
   public:
-    Parallel_ParLA(Domain dom, const Decomposition& dec,const LocalMatrices<ParLA> local_matrices,const SolverTraits& traits) :
+    Parallel_ParLA(Domain dom, const Decomposition& dec,const LocalMatrices<ParLA>& local_matrices,const SolverTraits& traits) :
      Ras<Parallel_ParLA,ParLA>(dom,dec,local_matrices,traits), 
      partition_( local_matrices.sub_assignment().np() /DataDD.nsub_x()), dim_local_res_vec1_(local_matrices.sub_assignment().np(),0),
      dim_cum_vec1_(local_matrices.sub_assignment().np(),0), dim_local_res_vec2_(local_matrices.sub_assignment().np(),0), 

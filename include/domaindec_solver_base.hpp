@@ -23,7 +23,7 @@ class DomainDecSolverBase {
 
 public:
 
-  DomainDecSolverBase(Domain dom,Decomposition  dec, LocalMatrices<LA> local_matrices, const SolverTraits& traits) :
+  DomainDecSolverBase(Domain dom,const Decomposition&  dec,const LocalMatrices<LA>& local_matrices, const SolverTraits& traits) :
   domain(dom),DataDD(std::move(dec)),local_mat(std::move(local_matrices)), traits_(traits)
   {};  
 

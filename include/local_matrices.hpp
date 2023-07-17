@@ -109,7 +109,7 @@ private:
 
 public:
 
-  LocalMatrices(Domain dom,Decomposition  dec,const SpMat& A, int np, int current_rank=0) :
+  LocalMatrices(Domain dom,const Decomposition&  dec,const SpMat& A, int np, int current_rank=0) :
     domain(dom),DataDD(std::move(dec)),R_(DataDD.nsub()),R_tilde_(DataDD.nsub()), localA_(DataDD.nsub()),localA_created_(0),
     current_rank_(current_rank),rank_group_la_(current_rank),local_numbering(false), 
     sub_assignment_(LA(np,DataDD.nsub_x(),DataDD.nsub_t()))
@@ -128,7 +128,7 @@ public:
 
 
   // constructor for custom matrix in sub assignment
-  LocalMatrices(Domain dom,Decomposition  dec,const SpMat& A, int np, int current_rank, Eigen::MatrixXi custom_mat) :
+  LocalMatrices(Domain dom,const Decomposition&  dec,const SpMat& A, int np, int current_rank, Eigen::MatrixXi custom_mat) :
     domain(dom),DataDD(std::move(dec)),R_(DataDD.nsub()),R_tilde_(DataDD.nsub()), localA_(DataDD.nsub()),localA_created_(0),
     current_rank_(current_rank),rank_group_la_(current_rank),local_numbering(false), 
     sub_assignment_(LA(np,DataDD.nsub_x(),DataDD.nsub_t(),custom_mat))

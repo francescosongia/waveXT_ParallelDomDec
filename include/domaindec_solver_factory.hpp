@@ -20,7 +20,7 @@ private:
 
 public:
   
-  DomainDecSolverFactory(Domain dom,Decomposition dec, LocalMatrices<LA> local_mat,const SolverTraits& traits) :
+  DomainDecSolverFactory(Domain dom,const Decomposition& dec,const LocalMatrices<LA>& local_mat,const SolverTraits& traits) :
        domain(dom),DataDD(std::move(dec)), local_matrices(local_mat), traits_(traits)
        {};
 

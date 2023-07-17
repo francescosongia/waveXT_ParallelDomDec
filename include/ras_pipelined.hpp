@@ -8,7 +8,7 @@
 template<class P,class LA>
 class RasPipelined : public DomainDecSolverBase<P,LA> {
 public:
-  RasPipelined(Domain dom, const Decomposition& dec, LocalMatrices<LA> local_matrices,const SolverTraits& traits) : 
+  RasPipelined(Domain dom,const Decomposition& dec,const LocalMatrices<LA>& local_matrices,const SolverTraits& traits) : 
         DomainDecSolverBase<P,LA>(dom,dec,local_matrices,traits), matrix_domain_(dec.nsub_t(),dec.nsub_x())
         {   
             // matrix_domain_ is a mtrix representing the domain, it will support the computations
@@ -88,7 +88,7 @@ protected:
 class PipeParallel_SeqLA : public RasPipelined<PipeParallel_SeqLA,SeqLA>
 {
   public:
-    PipeParallel_SeqLA(Domain dom, const Decomposition& dec,const LocalMatrices<SeqLA> local_matrices, const SolverTraits& traits) : 
+    PipeParallel_SeqLA(Domain dom,const Decomposition& dec,const LocalMatrices<SeqLA>& local_matrices, const SolverTraits& traits) : 
     RasPipelined<PipeParallel_SeqLA,SeqLA>(dom,dec,local_matrices,traits) 
     { };
     
@@ -254,7 +254,7 @@ class PipeParallel_ParLA : public RasPipelined<PipeParallel_ParLA,ParLA>
     std::vector<int> dim_cum_vec2_;
 
   public:
-    PipeParallel_ParLA(Domain dom, const Decomposition& dec,const LocalMatrices<ParLA> local_matrices, const SolverTraits& traits):
+    PipeParallel_ParLA(Domain dom, const Decomposition& dec,const LocalMatrices<ParLA>& local_matrices, const SolverTraits& traits):
                          
     RasPipelined<PipeParallel_ParLA,ParLA>(dom,dec,local_matrices,traits),
      partition_( local_matrices.sub_assignment().np() /DataDD.nsub_x()), dim_local_res_vec1_(local_matrices.sub_assignment().np(),0),
@@ -526,7 +526,7 @@ class PipeParallel_ParLA : public RasPipelined<PipeParallel_ParLA,ParLA>
 class PipeSequential : public RasPipelined<PipeSequential,SeqLA>
 {
   public:
-    PipeSequential(Domain dom, const Decomposition& dec,const LocalMatrices<SeqLA> local_matrices,const SolverTraits& traits):
+    PipeSequential(Domain dom, const Decomposition& dec,const LocalMatrices<SeqLA>& local_matrices,const SolverTraits& traits):
      RasPipelined<PipeSequential,SeqLA>(dom,dec,local_matrices,traits)
       { };
 

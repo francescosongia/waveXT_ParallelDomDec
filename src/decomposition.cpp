@@ -20,7 +20,7 @@ void Decomposition::createDec(double n = -1, double m = -1) {
   }
   sub_sizes_[0] = n;
   sub_sizes_[1] = m;
-  std::cout<<"size of space sub: "<<n<<"  anc time sub: "<<m<<std::endl;
+  std::cout<<"size of space sub: "<<n<<"  and time sub: "<<m<<std::endl;
 
   
   // create overlap structures and start_elem
