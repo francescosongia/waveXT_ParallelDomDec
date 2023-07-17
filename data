@@ -4,21 +4,21 @@
 [parameters]
   [./problem]
     nx    = 20
-    nt    = 20
+    nt    = 100
     x     = 1
-    t     = 1
+    t     = 5
     nln   = 6
   [../]
   
   [./decomposition]
     nsubx = 2
-    nsubt = 10
+    nsubt = 20
     size_subx = 0
     size_subt = 0
   [../]
 
   [./traits]
-    method         = RAS
+    method         = PIPE
     linear_algebra = SeqLA
     max_iter       = 100
     tol            = 1e-10
@@ -30,4 +30,4 @@
 [../]
 
 [file_matrices]
-  test = test1
+  test = test2

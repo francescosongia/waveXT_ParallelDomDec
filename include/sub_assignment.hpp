@@ -14,7 +14,7 @@ public:
 
   
   //custom solo per seqla   
-  SubAssignment(int nproc, unsigned int nsubx,unsigned int nsubt, Eigen::MatrixXi sub_division)
+  SubAssignment(int nproc, unsigned int nsubx,unsigned int nsubt, const Eigen::MatrixXi& sub_division)
       : np_(nproc), nsub_x_(nsubx), nsub_t_(nsubt), sub_division_(sub_division), sub_division_vec_(nproc),custom_matrix_(true)
       {
         std::vector<std::vector<int>> temp(nproc);
@@ -53,7 +53,7 @@ public:
   auto sub_division_vec() const { return sub_division_vec_; };
   auto custom_matrix() const { return custom_matrix_; };
 
-  virtual void createSubDivision() =0;
+  virtual void createSubDivision() = 0;
 
   /*
   void createSubDivision()
@@ -76,7 +76,7 @@ class SeqLA : public SubAssignment<SeqLA>
         this->sub_division_.resize(nproc,(nsubx/nproc)*nsubt);
      };
 
-    SeqLA(int nproc, unsigned int nsubx,unsigned int nsubt,Eigen::MatrixXi sub_division):
+    SeqLA(int nproc, unsigned int nsubx,unsigned int nsubt,const Eigen::MatrixXi& sub_division):
      SubAssignment<SeqLA>(nproc,nsubx,nsubt,sub_division)
      {};
 
@@ -120,7 +120,8 @@ class ParLA : public SubAssignment<ParLA>
     ParLA(int nproc, unsigned int nsubx,unsigned int nsubt): SubAssignment<ParLA>(nproc,nsubx,nsubt) 
     {};
     
-    ParLA(int nproc, unsigned int nsubx,unsigned int nsubt,Eigen::MatrixXi sub_division): SubAssignment<ParLA>(nproc,nsubx,nsubt,sub_division) 
+    ParLA(int nproc, unsigned int nsubx,unsigned int nsubt,const Eigen::MatrixXi& sub_division): 
+      SubAssignment<ParLA>(nproc,nsubx,nsubt,sub_division) 
     {
       std::cerr<<"custom sub assignment is not possible with ParLA"<<std::endl;
     };

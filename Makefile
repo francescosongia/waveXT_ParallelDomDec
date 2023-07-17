@@ -17,7 +17,7 @@ OBJS2=$(SRCS2:.cpp=.o)
 CXX=mpic++
 CXX2=g++
 CC=$(CXX)
-CXXFLAGS=-O0 -Wall -std=c++17
+CXXFLAGS=-O2 -Wall -std=c++17
 all: main main2
 
 distclean:

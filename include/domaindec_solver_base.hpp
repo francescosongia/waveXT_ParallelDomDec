@@ -22,9 +22,20 @@ template <class P, class LA>
 class DomainDecSolverBase {
 
 public:
+
   DomainDecSolverBase(Domain dom,Decomposition  dec, LocalMatrices<LA> local_matrices, const SolverTraits& traits) :
   domain(dom),DataDD(std::move(dec)),local_mat(std::move(local_matrices)), traits_(traits)
-  {};  //avoid copies with move, da capire!
+  {};  
+
+/*
+  template<class D=Decomposition>
+  DomainDecSolverBase(Domain dom,D&& dec, LocalMatrices<LA>&& local_matrices, const SolverTraits& traits) :
+  domain(dom),DataDD(dec),local_mat(std::move(local_matrices)), traits_(traits)
+  {
+    std::cout<<"universal"<<std::endl;
+  };  
+  */
+
 
   virtual SolverResults solve(const SpMat& A, const SpMat& b) = 0;  
  

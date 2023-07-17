@@ -1,11 +1,13 @@
 #include "domaindec_solver_factory.hpp"
 #include <iostream>
 #include <vector>
-#include "Eigen/Dense"
+#include "Eigen/Dense"  // eigen version 3.4.0
 #include "exchange_txt.h"
 #include "GetPot"
 #include <mpi.h>
 #include <random>
+
+
 
 int main(int argc, char **argv) {
 
@@ -37,12 +39,13 @@ int main(int argc, char **argv) {
     std::string filenameb = folder_root+"problem_matrices//"+test_matrices+"//b.txt";
     std::string filename_coord = folder_root+"problem_matrices//"+test_matrices+"//coord.txt";
 
+
     MPI_Init(&argc, &argv);
     
     int rank{0},size{0};
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-
+ 
     //--------------------------------------------------------------------
     //NEXT
     
@@ -54,7 +57,6 @@ int main(int argc, char **argv) {
     // prova con problma piu grosso, altri test cases (e dividere i data file di getpot?)
     // controllare rowmajor ordering of spmat (parto da commento in localmatrices). SE LO CAMBIO NON FUNZIONA NULLA, NON VALE LA PENA FORSE PERDERCI TEMPO
     // controllare se aggiungere const (nei paramentri delle funzioni), capire e usare std::move                             
-    // gestire altri modi di parallelizzare (matrice dei sub assegnati). parto da commento in subassignment e poi localmatrices   OK CUSTOM MAT
     // postproccesing (senza codice, confrontare però la varie policy in termini di tempo e solves)
     //--------------------------------------------------------------------
 
@@ -65,12 +67,9 @@ int main(int argc, char **argv) {
     // inoltre in alcuni casi local matrices non è passato come references
     // tra usare le refernces e la move semantic sembra non esserci differenza nel nostro caso visto che non ci importa di trasferire la ownership
 
-
     
-    
-    // qui sto facendo if con errori, sarebbe da proporre versione 
-    // accettabile (modificare nsubx o policy LA) e andare avanti
     // FARLI CON ASSERT !
+    //  E PROPORRE SEMPRE CON UN MESSAGGIO UNA SOLUZIONE ACCETTABILE (modificare nsubx o policy LA) 
     if(size%2 !=0){
         std::cerr<<"even number of cores required"<<std::endl;
         return 0;

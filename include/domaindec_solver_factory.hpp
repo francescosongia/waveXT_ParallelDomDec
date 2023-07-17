@@ -34,7 +34,7 @@ public:
   };
 
   template <typename... Args>
-  std::unique_ptr<DomainDecSolverBase<P,LA>> createSolver(std::string const &name,Args... args)
+  std::unique_ptr<DomainDecSolverBase<P,LA>> createSolver(std::string const &name,Args&&... args)
   {
     if (name == "RAS") {
       return std::make_unique<Ras<P,LA>>(std::forward<Args>(args)...);

@@ -124,7 +124,7 @@ public:
       std::cout<<"local matrices created"<<std::endl; 
       std::cout<<"size of R_: "<<R_.size()<<std::endl;
 
-  };  //avoid copies with move, da capire!
+  }; 
 
 
   // constructor for custom matrix in sub assignment
@@ -160,16 +160,16 @@ public:
         for(unsigned int k : sub_division_vec){
             auto k_local = k - this->rank_group_la_*size_assigned; 
             std::pair<SpMat, SpMat> res= this->createRK(k);
-            this->R_[k_local-1]=res.first;
-            this->R_tilde_[k_local-1]=res.second;
+            this->R_[k_local-1] = std::move(res.first);
+            this->R_tilde_[k_local-1] = std::move(res.second);
             }  
     }
     //sequential framework
     else{
         for(unsigned int k : sub_division_vec){
             std::pair<SpMat, SpMat> res= this->createRK(k);
-            this->R_[k-1]=res.first;
-            this->R_tilde_[k-1]=res.second;
+            this->R_[k-1]= std::move(res.first);
+            this->R_tilde_[k-1] = std::move(res.second);
             }
     }
   }; 
