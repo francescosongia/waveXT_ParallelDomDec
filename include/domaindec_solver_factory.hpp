@@ -29,7 +29,8 @@ public:
     
     if (method_ptr == nullptr)
       return SolverResults(Eigen::VectorXd::Zero(1),0,0,traits_,DataDD);
-    
+    if(local_matrices.rank()==0)
+      std::cout<<"STEP 3/3: Solving the problem"<<std::endl<<std::endl;
     return method_ptr->solve(A,b);
   };
 

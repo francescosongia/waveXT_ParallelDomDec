@@ -2,27 +2,26 @@
 #include <cmath>
 #include <vector>
 #include <iostream>
+#include <cassert>
 
 
 void Decomposition::createDec(double n = -1, double m = -1) {
   unsigned int nx = domain.nx();
   unsigned int nt = domain.nt();
   
-  // (?)
-  // aggiungere controllo nel caso in cui n,m sono settati da utente e tali che 
-  // formo solo sub composti da overlpa, controllare se codice funziona lo stesso
+  assert((n<=0 && m<=0) && n*nsub_x_ < 2*nx && m * nsub_t_ < 2*nt 
+        && "Subdomains composed by only overlap are not allowed, reduce the sub sizes or use the default ones (0).");
 
-  // sub sizes are not setted by user or if they exceed the max size 
-  if (n * nsub_x_ <= nx || m * nsub_t_ <= nt) { 
+  // sub sizes are not setted by user or if they not covers the domains
+  if (n * nsub_x_ <= nx || m * nsub_t_ <= nt || n<=0 || m<=0) { 
+    //std::cout<<"Subdomains sizes automatically defined"<<std::endl;
     double molt = 1.2;
     n = floor(nx * molt / nsub_x_);
     m = floor(nt * molt / nsub_t_);
   }
   sub_sizes_[0] = n;
   sub_sizes_[1] = m;
-  std::cout<<"size of space sub: "<<n<<"  and time sub: "<<m<<std::endl;
-
-  
+  //std::cout<<"size of space sub: "<<n<<"  and time sub: "<<m<<std::endl;  
   // create overlap structures and start_elem
 
   // average ot,ox, rest

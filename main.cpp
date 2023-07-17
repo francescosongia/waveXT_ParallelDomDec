@@ -4,12 +4,14 @@
 #include "Eigen/Dense"
 #include "exchange_txt.h"
 #include "GetPot"
+#include <cassert>
 
-int main(int argc, char **argv) {
+int main(int argc, char* argv[]) {
 
      // tramite Getpot leggo tutti i parametri utili per la risoluzione
     GetPot command_line(argc, argv);
-    const std::string filename = command_line.follow("data", 2, "-f", "--file");
+    const std::string test_name = command_line.follow("test1", 1, "-t", "--test");
+    const std::string filename = ".//tests//"+test_name+"//data";
     GetPot datafile(filename.c_str());
 
     std::string folder_root = ".//";
@@ -32,31 +34,25 @@ int main(int argc, char **argv) {
     double tol_pipe_sx = datafile("parameters/traits/tol_pipe_sx", 1e-10);
     double it_wait = datafile("parameters/traits/it_wait_pipe", 3);
 
-    std::string test_matrices=datafile("file_matrices/test", "test1");
-    std::string filenameA = folder_root+"problem_matrices//"+test_matrices+"//A.txt";
-    std::string filenameb = folder_root+"problem_matrices//"+test_matrices+"//b.txt";
-    std::string filename_coord = folder_root+"problem_matrices//"+test_matrices+"//coord.txt";
+    std::string filenameA = folder_root+"tests//"+test_name+"//A.txt";
+    std::string filenameb = folder_root+"tests//"+test_name+"//b.txt";
+    std::string filename_coord = folder_root+"tests//"+test_name+"//coord.txt";
     
-    if(la!= "SeqLA"){
-        std::cerr<<"sequential policy required"<<std::endl;
-        return 0;
-    }
-    if(nsub_t == 1 || nsub_x == 1){
-        std::cerr<<"nsubx and nsubt must be >= 1"<<std::endl;
-        return 0;
-    }
+    assert(la=="SeqLA"                      && "Sequential policy required.");
+    assert(!(nsub_t == 1 || nsub_x == 1)    && "nsubx and nsubt must be >= 1.");
 
     Domain dom(nx, nt, X, T, nln);    
-    Decomposition DataDD(dom, nsub_x, nsub_t);
-    std::cout<<"Decomposition created"<<std::endl;
+
+    std::cout<<"Method used: "<<method<<std::endl<<std::endl;
+    std::cout<<"STEP 1/3: Creating decomposition"<<std::endl;
+    Decomposition DataDD(dom, nsub_x, nsub_t,n,m);
+    std::cout<<"Size of space sub: "<<DataDD.sub_sizes()[0]<<"  and time sub: "<<DataDD.sub_sizes()[1]<<std::endl;
 
     SpMat A=readMat_fromtxt(filenameA,nt*nx*nln*2,nt*nx*nln*2);
     SpMat b=readMat_fromtxt(filenameb,nt*nx*nln*2,1);
-    std::cout<<"get problem matrices"<<std::endl;
 
     SolverTraits traits(max_it,tol,tol_pipe_sx,it_wait);
 
-    std::cout<<"method used: "<<method<<std::endl;
 
     int np = 1; 
     int rank = 0;

@@ -26,7 +26,7 @@ SpMat readMat_fromtxt(const std::string& filename, unsigned int rows,unsigned in
         }
     }
     else
-        std::cout<<"Could not open the file"<<std::endl;
+        std::cerr<<"Could not open the file"<<std::endl;
 
     SpMat A(rows,cols);
     A.setFromTriplets(tripletList.begin(), tripletList.end());
@@ -46,7 +46,7 @@ void saveVec_totxt(const std::string& filename,const Eigen::VectorXd& v) {
         }
     }
     else
-        std::cout<<"file not open"<<std::endl;
+        std::cerr<<"file not open"<<std::endl;
 }
 
 #endif //EXCHANGE_TXT_H

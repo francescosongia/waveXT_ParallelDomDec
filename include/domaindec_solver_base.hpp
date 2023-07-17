@@ -26,17 +26,7 @@ public:
   DomainDecSolverBase(Domain dom,const Decomposition&  dec,const LocalMatrices<LA>& local_matrices, const SolverTraits& traits) :
   domain(dom),DataDD(std::move(dec)),local_mat(std::move(local_matrices)), traits_(traits)
   {};  
-
-/*
-  template<class D=Decomposition>
-  DomainDecSolverBase(Domain dom,D&& dec, LocalMatrices<LA>&& local_matrices, const SolverTraits& traits) :
-  domain(dom),DataDD(dec),local_mat(std::move(local_matrices)), traits_(traits)
-  {
-    std::cout<<"universal"<<std::endl;
-  };  
-  */
-
-
+  
   virtual SolverResults solve(const SpMat& A, const SpMat& b) = 0;  
  
   SolverTraits traits() const { return traits_;};

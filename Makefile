@@ -18,14 +18,32 @@ CXX=mpic++
 CXX2=g++
 CC=$(CXX)
 CXXFLAGS=-O2 -Wall -std=c++17
-all: main main2
+all: main mainseq
 
 distclean:
-		$(RM) main main2
+		$(RM) main mainseq
 		$(RM) *.o
 
-main2: $(SRCS2)
-		$(CXX2) $(CXXFLAGS) $(SRCS2) -Wall -o main2 $(CPPFLAGS)
+mainseq: $(SRCS2)
+		$(CXX2) $(CXXFLAGS) $(SRCS2) -Wall -o mainseq $(CPPFLAGS)
 
 main: $(SRCS1)
-		$(CXX) $(CXXFLAGS) $(SRCS1) -Wall -o main $(CPPFLAGS)
+		$(CXX) $(CXXFLAGS) $(SRCS1)  -Wno-sign-compare -o main $(CPPFLAGS)
+
+run: main
+ifeq ($(filter-out $@,$(MAKECMDGOALS)),)
+		@echo "Usage: make run <num_processes> <testname>"
+		@exit 1
+endif
+		mpiexec -n $(word 1, $(filter-out $@,$(MAKECMDGOALS))) ./main -t $(word 2, $(filter-out $@,$(MAKECMDGOALS)))
+
+runseq: mainseq
+ifeq ($(filter-out $@,$(MAKECMDGOALS)),)
+		@echo "Usage: make run <testname>"
+		@exit 1
+endif
+		./mainseq -t $(word 1, $(filter-out $@,$(MAKECMDGOALS)))
+
+
+%:
+	@:

@@ -121,8 +121,8 @@ public:
       this->sub_assignment_.createSubDivision();
       this->createRMatrices();
       this->createAlocal(A);
-      std::cout<<"local matrices created"<<std::endl; 
-      std::cout<<"size of R_: "<<R_.size()<<std::endl;
+      if(current_rank==0)
+        std::cout<<"STEP 2/3: Local matrices created"<<std::endl; 
 
   }; 
 
@@ -140,8 +140,8 @@ public:
       this->sub_assignment_.createSubDivision();
       this->createRMatrices();
       this->createAlocal(A);
-      std::cout<<"local matrices created"<<std::endl; 
-      std::cout<<"size of R_: "<<R_.size()<<std::endl;
+      if(current_rank==0)
+        std::cout<<"STEP 2/3: Local matrices created"<<std::endl; 
 
   };  //avoid copies with move, da capire!
 

@@ -6,13 +6,14 @@
 #include "GetPot"
 #include <mpi.h>
 #include <random>
+#include <cassert>
 
 
-
-int main(int argc, char **argv) {
+int main(int argc, char* argv[]) {
 
     GetPot command_line(argc, argv);
-    const std::string filename = command_line.follow("data", 2, "-f", "--file");
+    const std::string test_name = command_line.follow("test1", 1, "-t", "--test");
+    const std::string filename = ".//tests//"+test_name+"//data";
     GetPot datafile(filename.c_str());
 
     std::string folder_root =  ".//";
@@ -24,8 +25,8 @@ int main(int argc, char **argv) {
 
     unsigned int nsub_x = datafile("parameters/decomposition/nsubx", 2);
     unsigned int nsub_t = datafile("parameters/decomposition/nsubt", 3);
-    int n = datafile("parameters/decomposition/size_subx", 0);  // si potrebbero togliere anche dal getpot, facciamo fare sempre in automatico 
-    int m = datafile("parameters/decomposition/size_subt", 0);  // senza fornire n e m al costruttore
+    int n = datafile("parameters/decomposition/size_subx", 0); 
+    int m = datafile("parameters/decomposition/size_subt", 0); 
 
     std::string method= datafile("parameters/traits/method", "RAS");
     std::string la= datafile("parameters/traits/linear_algebra", "SeqLA");
@@ -34,10 +35,10 @@ int main(int argc, char **argv) {
     double tol_pipe_sx = datafile("parameters/traits/tol_pipe_sx", 1e-10);
     unsigned int it_wait = datafile("parameters/traits/it_wait_pipe", 3);
 
-    std::string test_matrices=datafile("file_matrices/test", "test1");
-    std::string filenameA = folder_root+"problem_matrices//"+test_matrices+"//A.txt";
-    std::string filenameb = folder_root+"problem_matrices//"+test_matrices+"//b.txt";
-    std::string filename_coord = folder_root+"problem_matrices//"+test_matrices+"//coord.txt";
+    //std::string test_matrices=datafile("file_matrices/test", "test1");
+    std::string filenameA = folder_root+"tests//"+test_name+"//A.txt";
+    std::string filenameb = folder_root+"tests//"+test_name+"//b.txt";
+    std::string filename_coord = folder_root+"tests//"+test_name+"//coord.txt";
 
 
     MPI_Init(&argc, &argv);
@@ -49,14 +50,10 @@ int main(int argc, char **argv) {
     //--------------------------------------------------------------------
     //NEXT
     
-    // sistemare makefile SISTEMATO DIRS, AGGIUNGERE PIU DATA FILE 
-    // opzione verbose
     // commentare 
 
-    // assert
-    // prova con problma piu grosso, altri test cases (e dividere i data file di getpot?)
-    // controllare rowmajor ordering of spmat (parto da commento in localmatrices). SE LO CAMBIO NON FUNZIONA NULLA, NON VALE LA PENA FORSE PERDERCI TEMPO
-    // controllare se aggiungere const (nei paramentri delle funzioni), capire e usare std::move                             
+    // prova con problma piu grosso
+    // controllare rowmajor ordering of spmat (parto da commento in localmatrices). SE LO CAMBIO NON FUNZIONA NULLA, NON VALE LA PENA FORSE PERDERCI TEMPO                           
     // postproccesing (senza codice, confrontare però la varie policy in termini di tempo e solves)
     //--------------------------------------------------------------------
 
@@ -67,38 +64,13 @@ int main(int argc, char **argv) {
     // inoltre in alcuni casi local matrices non è passato come references
     // tra usare le refernces e la move semantic sembra non esserci differenza nel nostro caso visto che non ci importa di trasferire la ownership
 
-    
-    // FARLI CON ASSERT !
-    //  E PROPORRE SEMPRE CON UN MESSAGGIO UNA SOLUZIONE ACCETTABILE (modificare nsubx o policy LA) 
-    if(size%2 !=0){
-        std::cerr<<"even number of cores required"<<std::endl;
-        return 0;
-    }
-    if(nsub_x == 1 && la =="ParLA"){
-        std::cerr<<"ParLA not possibile with subx=1"<<std::endl;
-        return 0;
-    }
-    if(nsub_x == 1 && la =="SeqLA"){
-        std::cerr<<"increase the number of subx, SeqLA requires size=nsubx, size>=2 "<<std::endl;
-        return 0;
-    }
-    if(size == nsub_x && la =="ParLA"){
-        std::cerr<<"with size = nsubx, SeqLA is needed. If you want to use ParLA decrease the number of subx."<<std::endl;
-        return 0;
-    }
-    if(la=="SeqLA" && size!=nsub_x && size>=2){
-        std::cerr<<"SeqLA requires size=nsubx."<<std::endl;
-        return 0;
-    }
-    if(la=="ParLA" && size%nsub_x !=0){
-        std::cerr<<"ParLA requires size proportinal to nsubx."<<std::endl;
-        return 0;
-    }
-
-    if(nsub_t == 1 || nsub_x == 1){
-        std::cerr<<"nsubx and nsubt must be >= 1"<<std::endl;
-        return 0;
-    }
+    assert(!(size%2 !=0)                               && "Even number of cores required.");
+    assert(!(nsub_x == 1 && la =="ParLA")              && "ParLA not possibile with subx = 1.");
+    assert(!(nsub_x == 1 && la =="SeqLA")              && "Increase the number of subx, SeqLA requires size = nsubx with size >= 2. ");
+    assert(!(size == nsub_x && la =="ParLA")           && "With size = nsubx, SeqLA is needed. If you want to use ParLA decrease the number of subx.");
+    assert(!(la == "SeqLA" && size!=nsub_x && size>=2) && "SeqLA requires size = nsubx.");
+    assert(!(la == "ParLA" && size%nsub_x !=0)         && "ParLA requires size proportional to nsubx.");
+    assert(!(nsub_t == 1 || nsub_x == 1)               && "nsubx and nsubt must be >= 1.");
 
     // ---------------------------------------------------------------------------
     /*
@@ -121,18 +93,21 @@ int main(int argc, char **argv) {
     // ---------------------------------------------------------------------------
 
     Domain dom(nx, nt, X, T, nln);
-    Decomposition DataDD(dom, nsub_x, nsub_t);
-    std::cout<<"Decomposition created, rank: "<<rank<<std::endl;
+    if(rank==0) {
+        std::cout<<"Method used: "<<method<<std::endl;
+        std::cout<<"LinearAlgebra policy used: "<<la<<std::endl<<std::endl;
+        std::cout<<"STEP 1/3: Creating decomposition"<<std::endl;
+        };
+    Decomposition DataDD(dom, nsub_x, nsub_t,n,m);
+    if(rank==0){std::cout<<"Size of space sub: "<<DataDD.sub_sizes()[0]<<"  and time sub: "<<DataDD.sub_sizes()[1]<<std::endl;};
+    
+    
 
     SpMat A=readMat_fromtxt(filenameA,nt*nx*nln*2,nt*nx*nln*2);
     SpMat b=readMat_fromtxt(filenameb,nt*nx*nln*2,1);
-    std::cout<<"get problem matrices, rank: "<<rank<<std::endl;
 
     SolverTraits traits(max_it,tol,tol_pipe_sx,it_wait);
 
-    std::cout<<"method used: "<<method<<", rank: "<<rank<<std::endl;
-    std::cout<<"LA policy used: "<<la<<", rank: "<<rank<<std::endl;    
-        
     SolverResults res_obj;
     
     if (method == "RAS" && la == "ParLA"){
@@ -176,39 +151,3 @@ int main(int argc, char **argv) {
 
     return 0;
 }
-
-
-
-/*
- //20 100, x1t5
-    nx=20;
-    nt=100;
-    X=1;
-    T=5;
-    nln=6;
-
-    nsub_x=2; //3
-    nsub_t=20; //4
-    // n=12;  //8
-    // m=6;
-    std::string filenameA=R"(/home/scientific-vm/Desktop/projectPACS/A_1_5.txt)";
-    std::string filenameb=R"(/home/scientific-vm/Desktop/projectPACS/b_1_5.txt)";
-    //std::string filenameA=R"(C:\Users\franc\Desktop\pacsPROJECT_test\A.txt)";
-    //std::string filenameb=R"(C:\Users\franc\Desktop\pacsPROJECT_test\b.txt)";
-    
-    
-    nx=20;
-    nt=20;
-    X=1;
-    T=1;
-    nln=6;
-
-    nsub_x=2; //3
-    nsub_t=10; //4
-    // n=12;  //8
-    // m=6;
-    std::string filenameA=R"(/home/scientific-vm/Desktop/projectPACS/A.txt)";
-    std::string filenameb=R"(/home/scientific-vm/Desktop/projectPACS/b.txt)";
-    //std::string filenameA=R"(C:\Users\franc\Desktop\pacsPROJECT_test\A.txt)";
-    //std::string filenameb=R"(C:\Users\franc\Desktop\pacsPROJECT_test\b.txt)";
-    */
