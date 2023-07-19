@@ -30,12 +30,20 @@ public:
   {
     int count{0};
     auto sub_division_vec = local_mat.sub_assignment().sub_division_vec()[local_mat.rank()];
-  
-    for(unsigned int k : sub_division_vec){    
-        // Eigen::SparseLU<SpMat > lu;
-        // lu.compute(local_mat.getAk(k));
-        localLU[count].compute(local_mat.getAk(k));
-        count++;
+    if(local_mat.sub_assignment().custom_matrix()==false){
+      for(unsigned int k : sub_division_vec){    
+          // Eigen::SparseLU<SpMat > lu;
+          // lu.compute(local_mat.getAk(k));
+          localLU[count].compute(local_mat.getAk(k));
+          count++;
+      }
+    }
+    else{
+      for(unsigned int k : sub_division_vec){    
+          // Eigen::SparseLU<SpMat > lu;
+          // lu.compute(local_mat.getAk(k));
+          localLU[k-1].compute(local_mat.getAk(k));
+      }
     }
   };  
   
