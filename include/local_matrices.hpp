@@ -203,7 +203,9 @@ public:
   auto localA_created() const {return localA_created_;};
   auto rank() const {return current_rank_;};
   auto sub_assignment() const {return sub_assignment_;};
-
+  auto get_size_vector_localmat() const {return R_.size();};
+  auto local_num() const {return local_numbering;};
+  auto rank_group_la() const {return rank_group_la_;};
 
 
 };

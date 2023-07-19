@@ -1,6 +1,9 @@
 #-------------------------------------------------
 # Data file 
 #-------------------------------------------------
+[custom_matrix]
+  random = 1
+  
 [parameters]
   [./problem]
     nx    = 20
@@ -30,4 +33,4 @@
 [../]
 
 [file_matrices]
-  test = test1
+  test = custom

@@ -185,10 +185,10 @@ class PipeParallel_SeqLA : public RasPipelined<PipeParallel_SeqLA,SeqLA>
       Eigen::VectorXd uk(this->domain.nln()*this->DataDD.sub_sizes()[0]*this->DataDD.sub_sizes()[1]*2);
 
       for(unsigned int k:sub_in_zone){
-          Eigen::SparseLU<SpMat > lu;
-          lu.compute(this->local_mat.getAk(k));
+        //   Eigen::SparseLU<SpMat > lu;
+        //   lu.compute(this->local_mat.getAk(k));
           auto temp = this->local_mat.getRk(k);
-          uk = lu.solve(temp.first*x);
+          uk = this->get_LU_k(k).solve(temp.first*x);
           z=z+(temp.second.transpose())*uk;
       }
       // Each rank compute the solution over the subdomains assigned and then collect and sum all the results with Allreduce
@@ -409,8 +409,8 @@ class PipeParallel_ParLA : public RasPipelined<PipeParallel_ParLA,ParLA>
       Eigen::VectorXd local_prod2(dim_local_res_vec2_[rank]);
 
       for(unsigned int k:sub_in_zone){
-          Eigen::SparseLU<SpMat > lu;
-          lu.compute(this->local_mat.getAk(k));
+        //   Eigen::SparseLU<SpMat > lu;
+        //   lu.compute(this->local_mat.getAk(k));
           auto temp = this->local_mat.getRk(k);
 
           // prod1: temp.first*x
@@ -427,7 +427,7 @@ class PipeParallel_ParLA : public RasPipelined<PipeParallel_ParLA,ParLA>
           else
              MPI_Recv (prod1.data(), dim_k, MPI_DOUBLE, rank%partition_, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-          uk = lu.solve(prod1);
+          uk = this->get_LU_k(k).solve(prod1);
 
           // ------------------------------------------------------------------
           //prod2  (temp.second.transpose())*uk
@@ -610,10 +610,10 @@ class PipeSequential : public RasPipelined<PipeSequential,SeqLA>
         Eigen::VectorXd uk(domain.nln()*DataDD.sub_sizes()[0]*DataDD.sub_sizes()[1]*2);
 
         for(unsigned int k:sub_in_zone){
-            Eigen::SparseLU<SpMat > lu;
-            lu.compute(local_mat.getAk(k));
+            // Eigen::SparseLU<SpMat > lu;
+            // lu.compute(local_mat.getAk(k));
             auto temp = local_mat.getRk(k);
-            uk = lu.solve(temp.first*x);
+            uk = this->get_LU_k(k).solve(temp.first*x);
             z=z+(temp.second.transpose())*uk;
 
         }

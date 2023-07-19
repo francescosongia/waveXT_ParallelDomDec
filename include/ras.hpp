@@ -62,10 +62,10 @@ class Parallel_SeqLA : public Ras<Parallel_SeqLA,SeqLA>
       
       auto sub_division_vec = local_mat.sub_assignment().sub_division_vec()[local_mat.rank()];
       for(unsigned int k : sub_division_vec){    
-          Eigen::SparseLU<SpMat > lu;
-          lu.compute(local_mat.getAk(k));
+          // Eigen::SparseLU<SpMat > lu;
+          // lu.compute(local_mat.getAk(k));      
           auto temp = local_mat.getRk(k); // temp contains R_k and Rtilde_k
-          uk = lu.solve(temp.first*x);
+          uk = this->get_LU_k(k).solve(temp.first*x);
           z=z+(temp.second.transpose())*uk;
           }
 
@@ -138,10 +138,10 @@ public:
     Eigen::VectorXd uk(domain.nln()*DataDD.sub_sizes()[0]*DataDD.sub_sizes()[1]*2);
     for(unsigned int k = 1; k <= DataDD.nsub(); ++k){
 
-        Eigen::SparseLU<SpMat > lu;
-        lu.compute(local_mat.getAk(k));
+        // Eigen::SparseLU<SpMat > lu;
+        // lu.compute(local_mat.getAk(k));
         auto temp = local_mat.getRk(k);
-        uk = lu.solve(temp.first*x);
+        uk = this->get_LU_k(k).solve(temp.first*x);
         z = z + (temp.second.transpose())*uk;
     }
     return z;
@@ -256,8 +256,8 @@ class Parallel_ParLA : public Ras<Parallel_ParLA,ParLA>
 
       auto sub_division_vec = local_mat.sub_assignment().sub_division_vec()[local_mat.rank()];
       for(unsigned int k : sub_division_vec){    
-          Eigen::SparseLU<SpMat > lu;
-          lu.compute(local_mat.getAk(k));
+          // Eigen::SparseLU<SpMat > lu;
+          // lu.compute(local_mat.getAk(k));
           auto temp = local_mat.getRk(k);
 
           // prod1: temp.first*x
@@ -274,7 +274,7 @@ class Parallel_ParLA : public Ras<Parallel_ParLA,ParLA>
           else
              MPI_Recv (prod1.data(), dim_k, MPI_DOUBLE, rank%partition_, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-          uk = lu.solve(prod1);
+          uk = this->get_LU_k(k).solve(prod1);
           
           // ------------------------------------------------------------------
           //prod2:  (temp.second.transpose())*uk
