@@ -1,0 +1,14 @@
+//Commenti per noi
+
+
+Eventuale miglioramento: Performance
+
+Dalla lezione sulla libreria Eigen sembra essere importante che la Eigen matrice sparsa
+sia compressa quando è stata popolata e rimane dello stesso pattern di sparsità così da fare calcoli più velocemente
+
+Eventuale miglioramento: user experience
+Nella lezione di Formaggia Quadrature rules (non nelle slide ma usando il terminale" fa un output del tipo
+"Quadrature rule BlaBla non esiste, le quadrature rule esistenti sono
+Simpson
+Trapeziodal ecc. 
+magari anche noi possiamo fare una cosa simile
