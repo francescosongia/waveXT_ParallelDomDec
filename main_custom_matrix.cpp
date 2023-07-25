@@ -7,6 +7,7 @@
 #include <mpi.h>
 #include <random>
 #include <cassert>
+#include <set>
 
 
 int main(int argc, char* argv[]) {
@@ -46,6 +47,15 @@ int main(int argc, char* argv[]) {
     MPI_Init(&argc, &argv);
     
     int rank{0},size{0};
+    
+    std::set<std::string> method_implemented = {"RAS", "PIPE" };
+    std::set<std::string> la_policy_implemented = {"SeqLA", "ParLA" };
+    if (method_implemented.find(method) == method_implemented.end()) 
+        std::cerr<<"Method non available. Choose between RAS and PIPE"<<std::endl;
+    if (la_policy_implemented.find(la) == la_policy_implemented.end()) 
+        std::cerr<<"Linear Algebra policy non available. Choose between SeqLA and ParLA"<<std::endl;
+
+
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     assert(!(la != "SeqLA")                            && "Custom matrix not possible with ParLA.");

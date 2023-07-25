@@ -6,7 +6,7 @@ SRC_DIR := $(PROJECT_ROOT)/src
 
 SRCS := $(wildcard $(SRC_DIR)/*.cpp)
 
-MAIN_FILE := $(PROJECT_ROOT)/main.cpp
+MAIN_FILE := $(PROJECT_ROOT)/main_seq.cpp
 MAIN_PARALLEL_FILE := $(PROJECT_ROOT)/main_parallel.cpp
 MAIN_CUSTOM_FILE := $(PROJECT_ROOT)/main_custom_matrix.cpp
 SRCS1 := $(SRCS) $(MAIN_PARALLEL_FILE)

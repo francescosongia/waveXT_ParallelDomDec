@@ -118,12 +118,12 @@ class PipeParallel_SeqLA : public RasPipelined<PipeParallel_SeqLA,SeqLA>
         MPI_Allreduce(MPI_IN_PLACE, &solves, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
 
         auto end = std::chrono::steady_clock::now();
-        double time=std::chrono::duration_cast<std::chrono::seconds>(end - start).count();
+        double time=std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
         if(rank==0){
             std::cout<<"niter: "<<niter<<std::endl;
             std::cout<<"solves: "<<solves<<std::endl;
-            std::cout <<"time in seconds: "<< time<<std::endl;
+            std::cout <<"time in milliseconds: "<< time<<std::endl;
         }
 
         SolverResults res_obj(uw,solves,time, this->traits_, this->DataDD);
@@ -336,12 +336,12 @@ class PipeParallel_ParLA : public RasPipelined<PipeParallel_ParLA,ParLA>
         MPI_Allreduce(MPI_IN_PLACE, &solves, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
 
         auto end = std::chrono::steady_clock::now();
-        double time=std::chrono::duration_cast<std::chrono::seconds>(end - start).count();
+        double time=std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
         if(rank==0){
             std::cout<<"niter: "<<niter<<std::endl;
             std::cout<<"solves: "<<solves<<std::endl;
-            std::cout <<"time in seconds: "<< time<<std::endl;
+            std::cout <<"time in milliseconds: "<< time<<std::endl;
         }
 
         SolverResults res_obj(uw,solves,time, this->traits_, this->DataDD);
@@ -555,11 +555,11 @@ class PipeSequential : public RasPipelined<PipeSequential,SeqLA>
         unsigned int solves = this->traits_.solves();
 
         auto end = std::chrono::steady_clock::now();
-        double time=std::chrono::duration_cast<std::chrono::seconds>(end - start).count();
+        double time=std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
         std::cout<<"niter: "<<niter<<std::endl;
         std::cout<<"solves: "<<solves<<std::endl;
-        std::cout <<"time in seconds: "<< time<<std::endl;
+        std::cout <<"time in milliseconds: "<< time<<std::endl;
         
 
         SolverResults res_obj(uw,solves,time, this->traits_, this->DataDD);

@@ -7,6 +7,7 @@
 #include <mpi.h>
 #include <random>
 #include <cassert>
+#include <set>
 
 
 int main(int argc, char* argv[]) {
@@ -50,7 +51,12 @@ int main(int argc, char* argv[]) {
     //--------------------------------------------------------------------
     //NEXT
     
-    // commentare 
+    // commentare
+    // if constexpr
+    // chiedere strutture e genericità generali
+    // tabellina speed up
+    // make help 
+    
 
     // prova con problma piu grosso
     // controllare rowmajor ordering of spmat (parto da commento in localmatrices). SE LO CAMBIO NON FUNZIONA NULLA, NON VALE LA PENA FORSE PERDERCI TEMPO                           
@@ -64,6 +70,14 @@ int main(int argc, char* argv[]) {
     // inoltre in alcuni casi local matrices non è passato come references
     // tra usare le refernces e la move semantic sembra non esserci differenza nel nostro caso visto che non ci importa di trasferire la ownership
 
+    
+    std::set<std::string> method_implemented = {"RAS", "PIPE" };
+    std::set<std::string> la_policy_implemented = {"SeqLA", "ParLA" };
+    if (method_implemented.find(method) == method_implemented.end()) 
+        std::cerr<<"Method non available. Choose between RAS and PIPE"<<std::endl;
+    if (la_policy_implemented.find(la) == la_policy_implemented.end()) 
+        std::cerr<<"Linear Algebra policy non available. Choose between SeqLA and ParLA"<<std::endl;
+    
     assert(!(size%2 !=0)                               && "Even number of cores required.");
     assert(!(nsub_x == 1 && la =="ParLA")              && "ParLA not possibile with subx = 1.");
     assert(!(nsub_x == 1 && la =="SeqLA")              && "Increase the number of subx, SeqLA requires size = nsubx with size >= 2. ");
@@ -72,25 +86,6 @@ int main(int argc, char* argv[]) {
     assert(!(la == "ParLA" && size%nsub_x !=0)         && "ParLA requires size proportional to nsubx.");
     assert(!(nsub_t == 1 || nsub_x == 1)               && "nsubx and nsubt must be >= 1.");
 
-    // ---------------------------------------------------------------------------
-    /*
-    // CUSTOM MATRIX, DA METTER IN GETPOT NEL CASO SI VUOLE TESTARE, PERO VA CAMBIATA LA CHIAMTA DI LOCAL MATRICES SOTTO
-    // Genera numeri casuali tra 0 e size-1 inclusi
-    std::mt19937 gen(1234);  //uguale per tutti i rank
-    std::uniform_int_distribution<> dis(0, size-1);
-    Eigen::MatrixXi custom_matrix_sub_assignment(nsub_x, nsub_t);
-    // Assegna valori casuali alla matrice
-    for (int i = 0; i < custom_matrix_sub_assignment.rows(); ++i) {
-        for (int j = 0; j < custom_matrix_sub_assignment.cols(); ++j) {
-            custom_matrix_sub_assignment(i, j) = dis(gen);
-        }
-    }
-    if(rank==0){
-        std::cout<<"custom matrix"<<std::endl;
-        std::cout<<custom_matrix_sub_assignment<<std::endl;
-    }
-    */
-    // ---------------------------------------------------------------------------
 
     Domain dom(nx, nt, X, T, nln);
     if(rank==0) {
@@ -122,13 +117,11 @@ int main(int argc, char* argv[]) {
     }
     else if (method == "RAS" && la == "SeqLA") {
         LocalMatrices<SeqLA> local_mat(dom, DataDD, A, size, rank);
-        //LocalMatrices<SeqLA> local_mat(dom, DataDD, A, size, rank,custom_matrix_sub_assignment);
         DomainDecSolverFactory<Parallel_SeqLA,SeqLA> solver(dom,DataDD,local_mat,traits);
         res_obj=solver(method,A,b);
     }
     else if (method == "PIPE" and la == "SeqLA") {
         LocalMatrices<SeqLA> local_mat(dom, DataDD, A, size, rank);
-        //LocalMatrices<SeqLA> local_mat(dom, DataDD, A, size, rank,custom_matrix_sub_assignment);
         DomainDecSolverFactory<PipeParallel_SeqLA,SeqLA> solver(dom,DataDD,local_mat,traits);
         res_obj=solver(method,A,b);
     }

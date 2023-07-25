@@ -113,8 +113,8 @@ class Parallel_SeqLA : public Ras<Parallel_SeqLA,SeqLA>
         std::cout<<"niter: "<<niter<<std::endl;
         solves = niter*this->DataDD.nsub();
         std::cout<<"solves: "<<solves<<std::endl;
-        time = std::chrono::duration_cast<std::chrono::seconds>(end - start).count();
-        std::cout <<"time in seconds: "<< time<<std::endl;
+        time = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+        std::cout <<"time in milliseconds: "<< time<<std::endl;
       }
       // return object with all informations about the procedure
       SolverResults res_obj(uw1,solves,time, this->traits_, DataDD);
@@ -178,8 +178,8 @@ public:
     std::cout<<"niter: "<<niter<<std::endl;
     unsigned int solves = niter*this->DataDD.nsub();
     std::cout<<"solves: "<<solves<<std::endl;
-    double time = std::chrono::duration_cast<std::chrono::seconds>(end - start).count();
-    std::cout <<"time in seconds: "<< time<<std::endl;
+    double time = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    std::cout <<"time in milliseconds: "<< time<<std::endl;
     SolverResults res_obj(uw1,solves,time, this->traits_, this->DataDD);
 
     return res_obj;
@@ -371,8 +371,8 @@ class Parallel_ParLA : public Ras<Parallel_ParLA,ParLA>
         std::cout<<"niter: "<<niter<<std::endl;
         solves = niter*this->DataDD.nsub();
         std::cout<<"solves: "<<solves<<std::endl;
-        time = std::chrono::duration_cast<std::chrono::seconds>(end - start).count();
-        std::cout <<"time in seconds: "<< time<<std::endl;
+        time = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+        std::cout <<"time in milliseconds: "<< time<<std::endl;
       }
       SolverResults res_obj(uw1,solves,time, this->traits_, DataDD);
 
