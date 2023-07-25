@@ -52,15 +52,15 @@ int main(int argc, char* argv[]) {
     //NEXT
     
     // commentare
-    // if constexpr
-    // chiedere strutture e genericità generali
     // tabellina speed up
     // make help 
-    
 
-    // prova con problma piu grosso
+    // chiedere:
+    // far vedere le parti di parallelizz
+    // if constexpr
+    // chiedere strutture e genericità generali
+    // librerire come iegen non in include (linkarle)
     // controllare rowmajor ordering of spmat (parto da commento in localmatrices). SE LO CAMBIO NON FUNZIONA NULLA, NON VALE LA PENA FORSE PERDERCI TEMPO                           
-    // postproccesing (senza codice, confrontare però la varie policy in termini di tempo e solves)
     //--------------------------------------------------------------------
 
     //------------const and move semantic ragionamenti----------------
