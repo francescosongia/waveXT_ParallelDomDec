@@ -432,7 +432,6 @@ class Parallel_SplitTime : public Ras<Parallel_SplitTime,SplitTime>
       MPI_Comm_rank(MPI_COMM_WORLD, &rank);
       MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-      std::cout<<"solve"<<rank<<std::endl;
       auto start = std::chrono::steady_clock::now();
       double tol = this->traits_.tol();
       unsigned int max_it = this->traits_.max_it();

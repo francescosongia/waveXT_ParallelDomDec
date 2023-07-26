@@ -54,8 +54,9 @@ public:
   const Eigen::SparseLU<SpMat>& get_LU_k(unsigned int k) const
   {
     assert(k<=this->DataDD.nsub());
-    k = (this->local_mat.local_num()) ? k-this->local_mat.rank_group_la()*this->local_mat.get_size_vector_localmat() : k;
-    return this->localLU[k-1];
+    auto local_k= this->local_mat.sub_assignment().idxSub_to_LocalNumbering(k, this->local_mat.rank());
+    //k = (this->local_mat.local_num()) ? k-this->local_mat.rank_group_la()*this->local_mat.get_size_vector_localmat() : k;
+    return this->localLU[local_k-1];
   };
   
   virtual ~DomainDecSolverBase() = default;

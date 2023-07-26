@@ -10,8 +10,18 @@ motivare vecotr al posto di array (piu portabile), modulo execution
 
 move semantic, in precondAction per b-Auw1
 
-suddivisione in tempo
-
+SplitTime
+local_numbering e rank_group_la non servnoo piu. eliminarli da classi, costruttuori e getters
+la funzione idx2sub è uguale per le tre policy di SubAssignment. definirla nel padre e non fare ovverride quindi
+    (poi è vero che nel futuro potrà esistere una police che richiederà un idx2sub diverso ma solo in quel momento
+    avrà senso differenziare le funzioni. ora no.)
+inserire assert nel main per questa nuova policy
+controllare che custom matrix funziona lo stesso (comunuque custom matrix non puo essere splittime, sarà sempre parallel_seqla e basta)
+PER RAS È FATTA, MANCA PER PIPE
+per pipe la classe figlia non sarà con policy LA splitest ma sara di policy LA. comunque sua figlia si chiamerà PipePArallel_SplitTest e sara del tipo
+Pipe<PipePArallel_SplitTest, ParLA>. questo per forza perche ci serve che tutti i core che lavorano sulla stessa striscia temp conoscono tutti i sub (come accade in Parla). 
+Sara da cambiare sub_in_zone in precondction di pipe in modo da dividere la zona tra i vari sub che agiscono sulla striscia tmeporale
+Comunque reduce non cambierà
 
 SA
 OneCoreOneStride
