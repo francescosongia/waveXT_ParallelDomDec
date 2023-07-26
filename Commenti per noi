@@ -28,6 +28,7 @@ OneCoreOneStride
 WithHelperCore
 SplitTime
 
-
+//RAS e PIPE precond father method con func wrapper non è chiamato (test std out)
+perchè nel solve viene chiamato il precond dei figli direttamente 
 
 
