@@ -380,6 +380,101 @@ class Parallel_ParLA : public Ras<Parallel_ParLA,ParLA>
     };
 };
 
+/*
+class Parallel_SplitTime : public Parallel_SeqLA
+{
+  public:
+    Parallel_SplitTime(Domain dom, const Decomposition& dec,const LocalMatrices<SplitTime>& local_matrices,const SolverTraits& traits) :
+     Parallel_SeqLA(dom,dec,local_matrices,traits) {};
+
+};
+*/
+
+class Parallel_SplitTime : public Ras<Parallel_SplitTime,SplitTime>
+{
+  public:
+    Parallel_SplitTime(Domain dom, const Decomposition& dec,const LocalMatrices<SplitTime>& local_matrices,const SolverTraits& traits) :
+     Ras<Parallel_SplitTime,SplitTime>(dom,dec,local_matrices,traits) {};
+
+    Eigen::VectorXd 
+    precondAction(const SpMat& x) 
+    {
+      // solve the local problems in the subdomains
+      Eigen::VectorXd z=Eigen::VectorXd::Zero(domain.nln()*domain.nt()*domain.nx()*2);
+      Eigen::VectorXd uk(domain.nln()*DataDD.sub_sizes()[0]*DataDD.sub_sizes()[1]*2);
+      int rank{0};
+
+      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+
+      std::cout<<"here"<<rank<<std::endl;
+      auto sub_division_vec = local_mat.sub_assignment().sub_division_vec()[local_mat.rank()];
+      std::cout<<"hereafter"<<rank<<std::endl;
+      for(unsigned int k : sub_division_vec){    
+          // Eigen::SparseLU<SpMat > lu;
+          // lu.compute(local_mat.getAk(k));      
+          auto temp = local_mat.getRk(k); // temp contains R_k and Rtilde_k
+          uk = this->get_LU_k(k).solve(temp.first*x);
+          z=z+(temp.second.transpose())*uk;
+          }
+
+      // Each rank compute the solution over the subdomains assigned and then collect and sum all the results with Allreduce
+      MPI_Allreduce(MPI_IN_PLACE, z.data(), domain.nln()*domain.nt()*domain.nx()*2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+      return z;
+    }
+
+
+    SolverResults solve(const SpMat& A, const SpMat& b)
+    {
+      // uw_n+1 = uw_n + P^-1 * (b-A*uw_n)
+      // where P^-1 is the sum over all subdomains k of (Rtilde_k' * A_k^-1 * R_k)
+      // for convergence check the L2 normalized residual
+      int rank{0},size{0};
+
+      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+      MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+      std::cout<<"solve"<<rank<<std::endl;
+      auto start = std::chrono::steady_clock::now();
+      double tol = this->traits_.tol();
+      unsigned int max_it = this->traits_.max_it();
+      double res = tol+1;
+      std::vector<double> relres2P_vec;
+      unsigned int niter = 0;
+      double Pb2 = precondAction(b).norm();
+
+      Eigen::VectorXd uw0 = Eigen::VectorXd::Zero(this->domain.nln()*this->domain.nt()*this->domain.nx()*2);
+      Eigen::VectorXd uw1(this->domain.nln()*this->domain.nt()*this->domain.nx()*2);
+
+      Eigen::VectorXd z = precondAction(b);
+      while(res>tol and niter<max_it){
+          uw1 = uw0 + z;  //forse si puo evitare l'uso di entrambi uw0 e uw1
+          z = precondAction(b - A*uw1);
+          res = (z/Pb2).norm();
+          relres2P_vec.push_back(res);
+          niter++;
+          uw0 = uw1;
+      }
+
+      auto end = std::chrono::steady_clock::now();
+      
+      unsigned int solves{0};
+      double time{0.0};
+      if(rank == 0){
+        std::cout<<"niter: "<<niter<<std::endl;
+        solves = niter*this->DataDD.nsub();
+        std::cout<<"solves: "<<solves<<std::endl;
+        time = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+        std::cout <<"time in milliseconds: "<< time<<std::endl;
+      }
+      // return object with all informations about the procedure
+      SolverResults res_obj(uw1,solves,time, this->traits_, DataDD);
+
+      return res_obj;
+    };
+};
+
+
 
 
 #endif

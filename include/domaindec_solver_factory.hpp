@@ -22,7 +22,7 @@ public:
   
   DomainDecSolverFactory(Domain dom,const Decomposition& dec,const LocalMatrices<LA>& local_mat,const SolverTraits& traits) :
        domain(dom),DataDD(std::move(dec)), local_matrices(local_mat), traits_(traits)
-       {};
+       { };
 
   SolverResults operator()(const std::string& method, const SpMat& A,const SpMat &b){
     auto method_ptr = this->createSolver(method, domain,DataDD,local_matrices,traits_); // each method obj is initialized 

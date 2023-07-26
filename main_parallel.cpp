@@ -63,14 +63,8 @@ int main(int argc, char* argv[]) {
     // controllare rowmajor ordering of spmat (parto da commento in localmatrices). SE LO CAMBIO NON FUNZIONA NULLA, NON VALE LA PENA FORSE PERDERCI TEMPO                           
     //--------------------------------------------------------------------
 
-    //------------const and move semantic ragionamenti----------------
-    // per usare const in ad esempio local matrices e Datadd od altri oggetti di grandi dimensioni bisogna vedere se questi ultimi vengono modificati
-    // ad esempio data DD potrebbe non essere modificato e i suoi membri ritornati con dei metodi const come i getters
-    // altra storia è local matrices infatti bisogna vedere se le matrici quando vengono usate come A_k[righe,colonne]*u significa che posso modificarle
-    // inoltre in alcuni casi local matrices non è passato come references
-    // tra usare le refernces e la move semantic sembra non esserci differenza nel nostro caso visto che non ci importa di trasferire la ownership
 
-    
+    /*
     std::set<std::string> method_implemented = {"RAS", "PIPE" };
     std::set<std::string> la_policy_implemented = {"SeqLA", "ParLA" };
     if (method_implemented.find(method) == method_implemented.end()) 
@@ -86,7 +80,7 @@ int main(int argc, char* argv[]) {
     assert(!(la == "ParLA" && size%nsub_x !=0)         && "ParLA requires size proportional to nsubx.");
     assert(!(nsub_t == 1 || nsub_x == 1)               && "nsubx and nsubt must be >= 1.");
 
-
+    */
     Domain dom(nx, nt, X, T, nln);
     if(rank==0) {
         std::cout<<"Method used: "<<method<<std::endl;
@@ -104,7 +98,23 @@ int main(int argc, char* argv[]) {
     SolverTraits traits(max_it,tol,tol_pipe_sx,it_wait);
 
     SolverResults res_obj;
+    LocalMatrices<SplitTime> local_mat(dom, DataDD, A, size, rank);
     
+    DomainDecSolverFactory<Parallel_SplitTime,SplitTime> solver(dom,DataDD,local_mat,traits);
+
+    res_obj=solver(method,A,b);
+    auto res = res_obj.getUW();
+    if (rank==0){
+        std::cout<<res(0)<<std::endl;
+        std::string f= "results/u.txt"; 
+        saveVec_totxt(f,res);
+
+        res_obj.formatGNU(0,filename_coord,nx*nt,nln);
+        res_obj.formatGNU(1,filename_coord,nx*nt,nln);
+    }
+    
+
+    /*
     if (method == "RAS" && la == "ParLA"){
         LocalMatrices<ParLA> local_mat(dom, DataDD, A, size, rank);
         DomainDecSolverFactory<Parallel_ParLA,ParLA> solver(dom,DataDD,local_mat,traits);
@@ -139,7 +149,7 @@ int main(int argc, char* argv[]) {
         res_obj.formatGNU(0,filename_coord,nx*nt,nln);
         res_obj.formatGNU(1,filename_coord,nx*nt,nln);
     }
-    
+    */
     MPI_Finalize();
 
     return 0;

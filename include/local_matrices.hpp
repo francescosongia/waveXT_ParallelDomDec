@@ -119,6 +119,7 @@ public:
         this->rank_group_la_ = current_rank_%(np/DataDD.nsub_x());
       
       this->sub_assignment_.createSubDivision();
+      //std::cout<<"subdivi, rank "<<current_rank<<":"<< this->sub_assignment_.sub_division()<<std::endl;
       this->createRMatrices();
       this->createAlocal(A);
       if(current_rank==0)

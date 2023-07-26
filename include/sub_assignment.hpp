@@ -55,14 +55,6 @@ public:
 
   virtual void createSubDivision() = 0;
 
-  /*
-  void createSubDivision()
-  {
-    LA func_wrapper(this->np_,this->nsub_x_,this->nsub_t_);
-    return func_wrapper.createSubDivision();
-  };
-  */
-
 };
 
 // SEQUENTIAL LINEAR ALGEBRA.
@@ -150,6 +142,44 @@ class ParLA : public SubAssignment<ParLA>
     };
 
 
+};
+
+class SplitTime : public SubAssignment<SplitTime>
+{
+  public:
+    SplitTime(int nproc, unsigned int nsubx,unsigned int nsubt): SubAssignment<SplitTime>(nproc,nsubx,nsubt) 
+    {
+      sub_division_.resize(nproc, nsubx*nsubt/nproc);
+    };
+    
+    SplitTime(int nproc, unsigned int nsubx,unsigned int nsubt,const Eigen::MatrixXi& sub_division): 
+      SubAssignment<SplitTime>(nproc,nsubx,nsubt,sub_division) 
+    {
+      std::cerr<<"custom sub assignment is not possible with SplitTime"<<std::endl;
+    };
+    
+
+    void createSubDivision() override
+    {
+      // 4 proc, 2 subx, 
+      
+      int partition{0};
+      partition = this->np_ / this->nsub_x_ ;  //how many process are assigned to a single time stride
+      int time_partition{0};
+      time_partition = this->nsub_t_ / partition ; // ASSERT CHE SIANO DIVISIBILI
+
+      if ( (this->nsub_x_*this->nsub_t_)%this->np_ == 0){  
+        for(int i=0; i< this->np_; ++i){
+          auto temp = Eigen::VectorXi::LinSpaced(time_partition, time_partition*i+1, time_partition*(i+1)+1 ) ;
+          this->sub_division_vec_[i] = temp;
+          this->sub_division_(i,Eigen::seq(0,time_partition-1)) = temp;
+        }
+      }
+      else{
+        std::cerr<<"error in subs division among processes"<<std::endl;
+      }
+    };
+ 
 };
 
 
