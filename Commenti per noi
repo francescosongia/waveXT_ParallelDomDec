@@ -1,14 +1,23 @@
 //Commenti per noi
 
+eigen in make:
+EIGEN_PATH = $(mkEigenInc)
+-I$(EIGEN_PATH)
 
-Eventuale miglioramento: Performance
+MPI comm per creare nuovi comunicatori (evitiamo somma zeri e gatherv+sendrecv)
 
-Dalla lezione sulla libreria Eigen sembra essere importante che la Eigen matrice sparsa
-sia compressa quando è stata popolata e rimane dello stesso pattern di sparsità così da fare calcoli più velocemente
+motivare vecotr al posto di array (piu portabile), modulo execution
 
-Eventuale miglioramento: user experience
-Nella lezione di Formaggia Quadrature rules (non nelle slide ma usando il terminale" fa un output del tipo
-"Quadrature rule BlaBla non esiste, le quadrature rule esistenti sono
-Simpson
-Trapeziodal ecc. 
-magari anche noi possiamo fare una cosa simile
+move semantic, in precondAction per b-Auw1
+
+suddivisione in tempo
+
+
+SA
+OneCoreOneStride
+WithHelperCore
+SplitTime
+
+
+
+

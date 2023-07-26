@@ -96,10 +96,12 @@ private:
     n = this->DataDD.sub_sizes()[0];
     SpMat temp(nln*m*n*2,nln*nt*nx*2);
     auto sub_division_vec = this->sub_assignment_.sub_division_vec()[this->current_rank_];
-    for(unsigned int k : sub_division_vec){    
-        k = (this->local_numbering) ? k-this->rank_group_la_*this->R_.size() : k;
-        temp=this->R_[k-1]*A;
-        this->localA_[k-1]=temp*(this->R_[k-1].transpose());
+    for(unsigned int k : sub_division_vec){   
+
+        auto local_k = (this->local_numbering) ? k-this->rank_group_la_*this->R_.size() : k;
+        //auto local_k = this->sub_assignment_.idxSub_to_LocalNumbering(k, this->current_rank_);
+        temp=this->R_[local_k-1]*A;
+        this->localA_[local_k-1]=temp*(this->R_[local_k-1].transpose());
     }
     this->localA_created_=1;
   };  
@@ -119,8 +121,9 @@ public:
         this->rank_group_la_ = current_rank_%(np/DataDD.nsub_x());
       
       this->sub_assignment_.createSubDivision();
-      //std::cout<<"subdivi, rank "<<current_rank<<":"<< this->sub_assignment_.sub_division()<<std::endl;
+      std::cout<<"subdivi, rank "<<current_rank<<":"<< this->sub_assignment_.sub_division()<<std::endl;
       this->createRMatrices();
+      std::cout<<"here"<<std::endl;
       this->createAlocal(A);
       if(current_rank==0)
         std::cout<<"STEP 2/3: Local matrices created"<<std::endl; 
@@ -158,11 +161,15 @@ public:
         this->R_.resize(size_assigned);
         this->R_tilde_.resize(size_assigned);
         this->localA_.resize(size_assigned);
+        
         for(unsigned int k : sub_division_vec){
             auto k_local = k - this->rank_group_la_*size_assigned; 
+            //auto k_local = this->sub_assignment_.idxSub_to_LocalNumbering(k, this->current_rank_);
+
             std::pair<SpMat, SpMat> res= this->createRK(k);
             this->R_[k_local-1] = std::move(res.first);
             this->R_tilde_[k_local-1] = std::move(res.second);
+            
             }  
     }
     //sequential framework
@@ -178,8 +185,9 @@ public:
 
   std::pair<SpMat, SpMat> getRk(unsigned int k) const
   {
-    k = (this->local_numbering) ? k-this->rank_group_la_*this->R_.size() : k;
-    return std::make_pair(this->R_[k-1], this->R_tilde_[k-1]);
+    auto local_k = (this->local_numbering) ? k-this->rank_group_la_*this->R_.size() : k;
+    //auto local_k = this->sub_assignment_.idxSub_to_LocalNumbering(k, this->current_rank_);
+    return std::make_pair(this->R_[local_k-1], this->R_tilde_[local_k-1]);
   };
 
 
@@ -195,8 +203,9 @@ public:
         return {1, 1};
     }
     else{
-        k = (this->local_numbering) ? k-this->rank_group_la_*this->R_.size() : k;
-        return this->localA_[k-1];
+        //auto local_k= this->sub_assignment_.idxSub_to_LocalNumbering(k, this->current_rank_);
+        auto local_k = (this->local_numbering) ? k-this->rank_group_la_*this->R_.size() : k;
+        return this->localA_[local_k-1];
     }
   };
 

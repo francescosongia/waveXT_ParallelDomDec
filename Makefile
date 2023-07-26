@@ -1,6 +1,6 @@
 PROJECT_ROOT=$(CURDIR)
 
-CPPFLAGS = -I $(PROJECT_ROOT)/include/
+CPPFLAGS = -I $(PROJECT_ROOT)/include/ 
 
 SRC_DIR := $(PROJECT_ROOT)/src
 
@@ -18,7 +18,7 @@ OBJS2=$(SRCS2:.cpp=.o)
 OBJS3=$(SRCS3:.cpp=.o)
 
 CXX=mpic++
-CXX2=g++
+CXX2=mpic++
 CC=$(CXX)
 CXXFLAGS=-O2 -Wall -std=c++17
 

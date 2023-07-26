@@ -56,7 +56,7 @@ public:
   auto custom_matrix() const { return custom_matrix_; };
 
   virtual void createSubDivision() = 0;
- // virtual unsigned int k_shifted(unsigned int k)=0; 
+  virtual unsigned int idxSub_to_LocalNumbering(unsigned int k,int current_rank) const = 0; 
 
 };
 
@@ -75,7 +75,7 @@ class SeqLA : public SubAssignment<SeqLA>
      SubAssignment<SeqLA>(nproc,nsubx,nsubt,sub_division)
      {};
 
-    // unsigned int k_shifted(unsigned int k) override { return k; }; 
+    unsigned int idxSub_to_LocalNumbering(unsigned int k,int current_rank) const override{ return k; }; 
 
 
     void createSubDivision() override
@@ -123,6 +123,17 @@ class ParLA : public SubAssignment<ParLA>
       std::cerr<<"custom sub assignment is not possible with ParLA"<<std::endl;
     };
 
+    unsigned int idxSub_to_LocalNumbering(unsigned int k, int current_rank) const override { 
+      auto sub_division_vec = this->sub_division_vec_[current_rank];
+      auto size_assigned = sub_division_vec.size();
+
+      int rank_group_la{current_rank};
+      if(this->np_/this->nsub_x_ > 1)
+        rank_group_la= current_rank%(this->np_/this->nsub_x_ );
+      return k - rank_group_la*size_assigned;
+
+    }; 
+
     void createSubDivision() override
     {
       // n.° process > nsubx. Assign to each time stride at least two processses. In thi way the linear 
@@ -161,22 +172,32 @@ class SplitTime : public SubAssignment<SplitTime>
     {
       std::cerr<<"custom sub assignment is not possible with SplitTime"<<std::endl;
     };
-    
+
+    unsigned int idxSub_to_LocalNumbering(unsigned int k, int current_rank) const override { 
+      auto sub_division_vec = this->sub_division_vec_[current_rank];
+      return k - sub_division_vec(0);//diff_time - i_group_la*(size_assigned);
+    }; 
+
 
     void createSubDivision() override
     {
-      // 4 proc, 2 subx, 
       
       int partition{0};
       partition = this->np_ / this->nsub_x_ ;  //how many process are assigned to a single time stride
       int time_partition{0};
       time_partition = this->nsub_t_ / partition ; // ASSERT CHE SIANO DIVISIBILI
 
+
+      Eigen::VectorXi list=Eigen::VectorXi::LinSpaced(this->np_,0,this->np_-1);  
+      auto matrix_cores=list.reshaped(partition, this->np_ / partition);  
+      auto vec_cores = matrix_cores.transpose().reshaped();
       if ( (this->nsub_x_*this->nsub_t_)%this->np_ == 0){  
+
         for(int i=0; i< this->np_; ++i){
+          auto local_i =vec_cores(i);
           auto temp = Eigen::VectorXi::LinSpaced(time_partition, time_partition*i+1, time_partition*(i+1)+1 ) ;
-          this->sub_division_vec_[i] = temp;
-          this->sub_division_(i,Eigen::seq(0,time_partition-1)) = temp;
+          this->sub_division_vec_[local_i] = temp;
+          this->sub_division_(local_i,Eigen::seq(0,time_partition-1)) = temp;
         }
       }
       else{

@@ -76,6 +76,6 @@ int main(int argc, char* argv[]) {
 
     res_obj.formatGNU(0,filename_coord,nx*nt,nln);
     res_obj.formatGNU(1,filename_coord,nx*nt,nln);
-
+    
     return 0;
 }

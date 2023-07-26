@@ -64,7 +64,7 @@ int main(int argc, char* argv[]) {
     //--------------------------------------------------------------------
 
 
-    
+    /*
     std::set<std::string> method_implemented = {"RAS", "PIPE" };
     std::set<std::string> la_policy_implemented = {"SeqLA", "ParLA" };
     if (method_implemented.find(method) == method_implemented.end()) 
@@ -79,7 +79,7 @@ int main(int argc, char* argv[]) {
     assert(!(la == "SeqLA" && size!=nsub_x && size>=2) && "SeqLA requires size = nsubx.");
     assert(!(la == "ParLA" && size%nsub_x !=0)         && "ParLA requires size proportional to nsubx.");
     assert(!(nsub_t == 1 || nsub_x == 1)               && "nsubx and nsubt must be >= 1.");
-
+    */
     
     Domain dom(nx, nt, X, T, nln);
     if(rank==0) {
@@ -98,8 +98,9 @@ int main(int argc, char* argv[]) {
     SolverTraits traits(max_it,tol,tol_pipe_sx,it_wait);
 
     SolverResults res_obj;
+    LocalMatrices<SeqLA> local_mat(dom, DataDD, A, size, rank);
     
-
+    /*
     if (method == "RAS" && la == "ParLA"){
         LocalMatrices<ParLA> local_mat(dom, DataDD, A, size, rank);
         DomainDecSolverFactory<Parallel_ParLA,ParLA> solver(dom,DataDD,local_mat,traits);
@@ -134,7 +135,7 @@ int main(int argc, char* argv[]) {
         res_obj.formatGNU(0,filename_coord,nx*nt,nln);
         res_obj.formatGNU(1,filename_coord,nx*nt,nln);
     }
-    
+    */
     MPI_Finalize();
 
     return 0;
