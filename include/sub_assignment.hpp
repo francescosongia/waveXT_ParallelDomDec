@@ -45,6 +45,8 @@ protected:
 
   bool custom_matrix_;
 
+  
+
 public:
   auto np() const { return np_; };
   auto nsub_x() const { return nsub_x_; };
@@ -54,6 +56,7 @@ public:
   auto custom_matrix() const { return custom_matrix_; };
 
   virtual void createSubDivision() = 0;
+ // virtual unsigned int k_shifted(unsigned int k)=0; 
 
 };
 
@@ -71,6 +74,8 @@ class SeqLA : public SubAssignment<SeqLA>
     SeqLA(int nproc, unsigned int nsubx,unsigned int nsubt,const Eigen::MatrixXi& sub_division):
      SubAssignment<SeqLA>(nproc,nsubx,nsubt,sub_division)
      {};
+
+    // unsigned int k_shifted(unsigned int k) override { return k; }; 
 
 
     void createSubDivision() override
@@ -117,7 +122,6 @@ class ParLA : public SubAssignment<ParLA>
     {
       std::cerr<<"custom sub assignment is not possible with ParLA"<<std::endl;
     };
-    
 
     void createSubDivision() override
     {

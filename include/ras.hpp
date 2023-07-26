@@ -8,7 +8,7 @@ template<class P, class LA>
 class Ras : public DomainDecSolverBase<P,LA>{
 
 public:
-  Ras(Domain dom, const Decomposition& dec,const LocalMatrices<LA> local_matrices,const SolverTraits& traits) : 
+  Ras(Domain dom, const Decomposition& dec,const LocalMatrices<LA>& local_matrices,const SolverTraits& traits) : 
     DomainDecSolverBase<P,LA>(dom,dec,local_matrices,traits)
     {};
 
@@ -406,10 +406,8 @@ class Parallel_SplitTime : public Ras<Parallel_SplitTime,SplitTime>
 
       MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-
-      std::cout<<"here"<<rank<<std::endl;
       auto sub_division_vec = local_mat.sub_assignment().sub_division_vec()[local_mat.rank()];
-      std::cout<<"hereafter"<<rank<<std::endl;
+  
       for(unsigned int k : sub_division_vec){    
           // Eigen::SparseLU<SpMat > lu;
           // lu.compute(local_mat.getAk(k));      
