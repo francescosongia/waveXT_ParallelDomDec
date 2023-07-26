@@ -21,6 +21,22 @@ CXX=mpic++
 CXX2=g++
 CC=$(CXX)
 CXXFLAGS=-O2 -Wall -std=c++17
+
+help:
+	@echo "Options:" 
+	@echo " - make all to build sequential and parallel"
+	@echo " - make main, mainseq, maincustom to build parallel, sequential and"
+	@echo "   custom matrix version, respectively"
+	@echo " - make distclean to remove objects and executables"
+	@echo " - make run <num_processes> <testname> to built and run in parallel"
+	@echo "   with data and parameters specified in tests/<testname>/data"
+	@echo " - make runseq <testname> to built and run in sequential with data "
+	@echo "   and parameters specified in tests/<testname>/data"
+	@echo " - make runcustom <num_processes> to built and run in parallel with"
+	@echo "   data and parameters specified in tests/custom/data"
+	@echo "   							"
+	@echo "See doc/report.pdf for more informations"
+	
 all: main mainseq
 
 distclean:

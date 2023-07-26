@@ -6,6 +6,7 @@
 #include "GetPot"
 #include <mpi.h>
 #include <random>
+#include <fstream>
 #include <cassert>
 #include <set>
 
@@ -82,8 +83,24 @@ int main(int argc, char* argv[]) {
         }
     }
     else{
-        std::cerr<<"da implemantare versione in cui leggo matrice custom da file esterno"<<std::endl;
+        //std::cerr<<"da implemantare versione in cui leggo matrice custom da file esterno"<<std::endl;
+        std::ifstream file_custom_mat;
+        file_custom_mat.open(folder_root+"tests//"+test_name+"//custom_matrix.txt");
+        if (!file_custom_mat.is_open()) {
+            std::cerr << "Error when reading the custom matrix file." << std::endl;
+            return 1;
+        }
+
+        for (int i = 0; i < nsub_x; ++i) 
+            for (int j = 0; j < nsub_t; ++j) 
+                if (!(file_custom_mat >> custom_matrix_sub_assignment(i, j))) {
+                    std::cerr << "Error when reading the custom matrix file, check dimensions." << std::endl;
+                    file_custom_mat.close();
+                    return 1;
+                }
+        file_custom_mat.close();
     }
+
     if(rank==0){
         std::cout<<"custom matrix"<<std::endl;
         std::cout<<custom_matrix_sub_assignment<<std::endl;

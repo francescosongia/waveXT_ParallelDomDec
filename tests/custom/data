@@ -2,7 +2,7 @@
 # Data file 
 #-------------------------------------------------
 [custom_matrix]
-  random = 1
+  random = 0
   
 [parameters]
   [./problem]
