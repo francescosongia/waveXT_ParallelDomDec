@@ -14,27 +14,34 @@ public:
 
   SolverResults solve(const SpMat& A, const SpMat& b) override
   {
+    // It creates an object P that represent a Policy and then call the solve method implemented in that Policy
     P func_wrapper(this->domain,this->DataDD,this->local_mat,this->traits_);
     return func_wrapper.solve(A,b);
   };
 };
 
+/*
+--------------------------------------------------------------------------------
+PARALLEL
+### Parallel_AloneOnStride: sequential linear algebra but subs assigned to different processes
+     precondAction
+     solve
 
-// --------------------------------------------------------------------------------
-// PARALLEL
-//### Parallel_AloneOnStride: sequential linear algebra but subs assigned to different processes
-//      precondAction
-//      solve
+### Parallel_CooperationOnStride: parallel linear algebra and subs assigned to different processes
+     precondAction
+     solve
 
-//### Parallel_CooperationOnStride: parallel linear algebra and subs assigned to different processes
-//      precondAction
-//      solve
-// --------------------------------------------------------------------------------
-// SEQUENTIAL 
-//### Sequential: sequential linear algebra and subs assigned only to one process
-//      precondAction
-//      solve
-// --------------------------------------------------------------------------------
+### Parallel_CooperationSplitTime: sequential linear algebra and subs assigned to different processes
+                                   in both spatial and time direction
+     precondAction
+     solve
+--------------------------------------------------------------------------------
+SEQUENTIAL 
+### Sequential: sequential linear algebra and subs assigned only to one process
+     precondAction
+     solve
+--------------------------------------------------------------------------------
+*/
  
 
 class Parallel_AloneOnStride : public Ras<Parallel_AloneOnStride,AloneOnStride>
@@ -50,7 +57,7 @@ class Parallel_AloneOnStride : public Ras<Parallel_AloneOnStride,AloneOnStride>
       Eigen::VectorXd z=Eigen::VectorXd::Zero(domain.nln()*domain.nt()*domain.nx()*2);
       Eigen::VectorXd uk(domain.nln()*DataDD.sub_sizes()[0]*DataDD.sub_sizes()[1]*2);
 
-      
+      // Get the subdomains assigned to the current rank
       auto sub_division_vec = local_mat.sub_assignment().sub_division_vec()[local_mat.rank()];
       for(unsigned int k : sub_division_vec){        
           auto temp = local_mat.getRk(k); // temp contains R_k and Rtilde_k
@@ -239,6 +246,7 @@ class Parallel_CooperationOnStride : public Ras<Parallel_CooperationOnStride,Coo
       Eigen::VectorXd prod2(dim_res); 
       Eigen::VectorXd local_prod2(dim_local_res_vec2_[rank]);
 
+      // Get the subdomains assigned to the current rank
       auto sub_division_vec = local_mat.sub_assignment().sub_division_vec()[local_mat.rank()];
       for(unsigned int k : sub_division_vec){    
           auto temp = local_mat.getRk(k);
@@ -395,6 +403,7 @@ class Parallel_CooperationSplitTime : public Ras<Parallel_CooperationSplitTime,C
 
       MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
+      // Get the subdomains assigned to the current rank
       auto sub_division_vec = local_mat.sub_assignment().sub_division_vec()[local_mat.rank()];
   
       for(unsigned int k : sub_division_vec){     

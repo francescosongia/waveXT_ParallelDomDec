@@ -44,7 +44,7 @@ distclean:
 		$(RM) *.o
 
 mainseq: $(SRCS2)
-		$(CXX2) $(CXXFLAGS) $(SRCS2) -Wall -o mainseq $(CPPFLAGS)
+		$(CXX2) $(CXXFLAGS) $(SRCS2) -Wno-sign-compare -o mainseq $(CPPFLAGS)
 
 main: $(SRCS1)
 		$(CXX) $(CXXFLAGS) $(SRCS1)  -Wno-sign-compare -o main $(CPPFLAGS)

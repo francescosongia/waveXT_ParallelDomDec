@@ -29,6 +29,7 @@ public:
         this->traits_.setItWaited(0);
         this->traits_.setSolves(0);
 
+        // It creates an object P that represent a Policy and then call the solve method implemented in that Policy
         P func_wrapper(this->domain,this->DataDD,this->local_mat,this->traits_);
         SolverResults res_obj = func_wrapper.solve(A,b);
 
@@ -40,24 +41,41 @@ protected:
 
 };
 
-// --------------------------------------------------------------------------------
-// PARALLEL
-//### PipeParallel_AloneOnStride: sequential linear algebra but subs assigned to different processes
-//      precondAction
-//      check_sx
-//      solve
+/*
+all the following policies have a solve method with the Richardson loop that calls at each iteration
+the function precondaction that compute the effect of P^-1 on the residual. checksx is called by precondaction
+to update the zone. 
 
-//### PipeParallel_CooperationOnStride: parallel linear algebra and subs assigned to different processes
-//      precondAction
-//      check_sx
-//      solve
-// --------------------------------------------------------------------------------
-// SEQUENTIAL 
-//### PipeSequential: sequential linear algebra and subs assigned only to one process
-//      precondAction
-//      check_sx
-//      solve
-// --------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+PARALLEL
+### PipeParallel_AloneOnStride: sequential linear algebra but subs assigned to different processes
+     precondAction
+     check_sx
+     solve
+
+### PipeParallel_CooperationOnStride: parallel linear algebra and subs assigned to different processes
+     precondAction
+     check_sx
+     solve
+
+### PipeParallel_CooperationSplitTime: sequential linear algebra and subs assigned to different processes.
+    In this policy we assign subdomains in a CooperationOnStride fashion. On each temporal stride there are
+    more cores working but they do no cooparate in linear algebra computation but they further divide the subs
+    in the time direction. We cannot use a CooperationSplitTime policy since with PIPE we cannot know a priori 
+    which subs are assigned to each core because the zone evolves during the solution process. We can only 
+    assign cores to a temporal stride and then they will divide those time subdomains dynamically.
+     precondAction
+     check_sx
+     solve
+     
+--------------------------------------------------------------------------------
+SEQUENTIAL 
+### PipeSequential: sequential linear algebra and subs assigned only to one process
+     precondAction
+     check_sx
+     solve
+--------------------------------------------------------------------------------
+*/
  
 
 class PipeParallel_AloneOnStride : public RasPipelined<PipeParallel_AloneOnStride,AloneOnStride>
@@ -90,6 +108,8 @@ class PipeParallel_AloneOnStride : public RasPipelined<PipeParallel_AloneOnStrid
 
         }
         unsigned int solves = this->traits_.solves();
+
+        // sum over all cores to compute the exact number of subdomains solved
         MPI_Allreduce(MPI_IN_PLACE, &solves, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
 
         auto end = std::chrono::steady_clock::now();
@@ -101,6 +121,7 @@ class PipeParallel_AloneOnStride : public RasPipelined<PipeParallel_AloneOnStrid
             std::cout <<"time in milliseconds: "<< time<<std::endl;
         }
 
+        // final result object
         SolverResults res_obj(uw,solves,time, this->traits_, this->DataDD);
 
         return res_obj;
@@ -130,6 +151,7 @@ class PipeParallel_AloneOnStride : public RasPipelined<PipeParallel_AloneOnStrid
       unsigned int it_wait = this->traits_.it_wait();
       unsigned int sx1= check_sx(x);
       unsigned int f=0;
+      // check if the left side of the zone has been updated
       if (sx1 >subt_sx_ and sx1<=this->DataDD.nsub_t()){
           subt_sx_=sx1;
           zone_--;
@@ -153,6 +175,7 @@ class PipeParallel_AloneOnStride : public RasPipelined<PipeParallel_AloneOnStrid
       unsigned int dx=subt_sx_+zone_;
       // -------------------------------------------------------------------------
 
+      // obtains the subdomains inside the zone for the current rank
       auto zonematrix=matrix_domain_(Eigen::seq(subt_sx_-1,dx-2),Eigen::seq(rank*partition, (rank+1)*partition-1));
       Eigen::VectorXi sub_in_zone=zonematrix.reshaped();
       solves_+=sub_in_zone.size();
@@ -181,6 +204,8 @@ class PipeParallel_AloneOnStride : public RasPipelined<PipeParallel_AloneOnStrid
     unsigned int check_sx(const Eigen::VectorXd& v)
     {
       // it returns the left element of the zone (of the first time stride)
+      // it checks if the current elem_sx has reached convergence.
+
       int np = this->local_mat.sub_assignment().np();
       int partition = this->DataDD.nsub_x() / np;  
       int rank = this->local_mat.rank();
@@ -306,6 +331,7 @@ class PipeParallel_CooperationOnStride : public RasPipelined<PipeParallel_Cooper
 
         }
         unsigned int solves = this->traits_.solves();
+        // sum among all cores how many times the subdomains are solved
         MPI_Allreduce(MPI_IN_PLACE, &solves, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
 
         auto end = std::chrono::steady_clock::now();
@@ -342,6 +368,7 @@ class PipeParallel_CooperationOnStride : public RasPipelined<PipeParallel_Cooper
       // --------- ZONE UPDATE -----------------------------------------------------
       unsigned int sx1= check_sx(x);
       unsigned int f=0;
+      // check if the left side of the zone has been updated
       if (sx1 >subt_sx_ and sx1<=this->DataDD.nsub_t()){
           subt_sx_=sx1;
           zone_--;
@@ -352,6 +379,7 @@ class PipeParallel_CooperationOnStride : public RasPipelined<PipeParallel_Cooper
           zone_++;
       //update dx
       if(isend==0){
+            // wait it_wait iterations and the update the zone
           if(it_waited_>=it_wait or (f==1 and it_waited_<it_wait)){
               zone_++;
               it_waited_=0;
@@ -360,10 +388,9 @@ class PipeParallel_CooperationOnStride : public RasPipelined<PipeParallel_Cooper
               it_waited_++;
       } 
       
-
       unsigned int dx=subt_sx_+zone_;
       // ---------------------------------------------------------------------------
-
+      // identify the sudomains inside the zone for the current rank
       auto zonematrix=matrix_domain_(Eigen::seq(subt_sx_-1,dx-2),Eigen::seq(rank%partition_,rank%partition_));
       Eigen::VectorXi sub_in_zone=zonematrix.reshaped();
       solves_+=sub_in_zone.size();
@@ -438,6 +465,7 @@ class PipeParallel_CooperationOnStride : public RasPipelined<PipeParallel_Cooper
       MPI_Comm_free(&master_comm);
       MPI_Comm_free(&workers_comm);
 
+        // update evolution parameters
       this->traits_.setZone(zone_);
       this->traits_.setSolves(solves_);
       this->traits_.setItWaited(it_waited_);
@@ -565,6 +593,7 @@ class PipeSequential : public RasPipelined<PipeSequential,AloneOnStride>
         // --------- ZONE UPDATE -----------------------------------------------------
         unsigned int sx1= check_sx(x);
         unsigned int f=0;
+        // check if the left side of the zone has been updated
         if (sx1 >subt_sx_ and sx1<=DataDD.nsub_t()){
             subt_sx_=sx1;
             zone_--;
@@ -576,6 +605,7 @@ class PipeSequential : public RasPipelined<PipeSequential,AloneOnStride>
 
         //update dx
         if(isend==0){
+            //It waits it_wait iterations and then update the zone
             if(it_waited_>=it_wait or (f==1 and it_waited_<it_wait)){
                 zone_++;
                 it_waited_=0;
@@ -588,6 +618,7 @@ class PipeSequential : public RasPipelined<PipeSequential,AloneOnStride>
         unsigned int dx=subt_sx_+zone_;
 
         // -----------------------------------------------------------------------
+        // Identify the subdomains inside the zone
         auto zonematrix=matrix_domain_(Eigen::seq(subt_sx_-1,dx-2),Eigen::seq(0,matrix_domain_.cols()-1));  
         Eigen::VectorXi sub_in_zone=zonematrix.reshaped();
         solves_+=sub_in_zone.size();
@@ -598,9 +629,9 @@ class PipeSequential : public RasPipelined<PipeSequential,AloneOnStride>
             auto temp = local_mat.getRk(k);
             uk = this->get_LU_k(k).solve(temp.first*x);
             z=z+(temp.second.transpose())*uk;
-
         }
 
+        // update evolution parameters
         this->traits_.setZone(zone_);
         this->traits_.setSolves(solves_);
         this->traits_.setItWaited(it_waited_);
@@ -611,6 +642,8 @@ class PipeSequential : public RasPipelined<PipeSequential,AloneOnStride>
 
     unsigned int check_sx(const Eigen::VectorXd& v) 
     {
+        // it checks if the left side of the zone has reached convergence and returns the subdomain 
+        // number corresponding to the left side of the zone
         unsigned int subt_sx_ = this->traits_.subt_sx(); 
         double tol_sx = this->traits_.tol_pipe_sx(); 
         unsigned int sx1=subt_sx_;
@@ -702,6 +735,7 @@ class PipeParallel_CooperationSplitTime : public RasPipelined<PipeParallel_Coope
       unsigned int it_wait = this->traits_.it_wait();
       unsigned int sx1= check_sx(x);
       unsigned int f=0;
+      // check if the left side of the zone has been updated
       if (sx1 >subt_sx_ and sx1<=this->DataDD.nsub_t()){
           subt_sx_=sx1;
           zone_--;
@@ -712,6 +746,7 @@ class PipeParallel_CooperationSplitTime : public RasPipelined<PipeParallel_Coope
           zone_++;
       //update dx
       if(isend==0){
+        // it waits it_wait iterations and then update the zone
           if(it_waited_>=it_wait or (f==1 and it_waited_<it_wait)){
               zone_ = zone_ +1 ;
               it_waited_=0;
@@ -722,10 +757,10 @@ class PipeParallel_CooperationSplitTime : public RasPipelined<PipeParallel_Coope
       } 
       // nsubt > = subt_sx+2 hypotesis  
 
-      //unsigned int dx=subt_sx_+zone_;
       // -------------------------------------------------------------------------
 
-      int cores_on_stride = size / this->DataDD.nsub_x();
+
+      int cores_on_stride = size / this->DataDD.nsub_x(); // how many cores are assigned the one temporal stride
       std::vector<int> dims_on_stride(cores_on_stride);
       std::vector<int> cum_start(cores_on_stride+1,0);
       for(int i=0;i<cores_on_stride;++i){
@@ -735,7 +770,7 @@ class PipeParallel_CooperationSplitTime : public RasPipelined<PipeParallel_Coope
       }
       int local_rank_on_stride = rank/this->DataDD.nsub_x();
       int size_assigned_on_rank = dims_on_stride[local_rank_on_stride];
-
+        // get the subdomains inside the zone for the current rank
       auto zonematrix=matrix_domain_(Eigen::seq(subt_sx_-1 + cum_start[local_rank_on_stride],
                                             subt_sx_-2 + cum_start[local_rank_on_stride]+ size_assigned_on_rank),
                                     Eigen::seq(rank%this->DataDD.nsub_x(),rank%this->DataDD.nsub_x()));
@@ -785,6 +820,7 @@ class PipeParallel_CooperationSplitTime : public RasPipelined<PipeParallel_Coope
 
       int partition_ = np/this->DataDD.nsub_x() ;  
       auto zonematrix=matrix_domain_(Eigen::seq(subt_sx_-1,subt_sx_-1),Eigen::seq(rank%partition_,rank%partition_));
+      // identify the subdomains in the left side of the zone for the current rank
       Eigen::VectorXi subsx_in_zone=zonematrix.reshaped();  
 
       for(unsigned int i: subsx_in_zone){
@@ -797,7 +833,7 @@ class PipeParallel_CooperationSplitTime : public RasPipelined<PipeParallel_Coope
       }
       // Each rank checks the subdomains assigned and then intersect the results with Allreduce
       // the other ones send only one integer (1) that does not change the result
-      
+
       int base{1};
 
       if(rank<this->DataDD.nsub_x())

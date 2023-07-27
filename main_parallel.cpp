@@ -12,6 +12,7 @@
 
 int main(int argc, char* argv[]) {
 
+    // get parameters and policies from getpot
     GetPot command_line(argc, argv);
     const std::string test_name = command_line.follow("test1", 1, "-t", "--test");
     const std::string filename = ".//tests//"+test_name+"//data";
@@ -55,16 +56,24 @@ int main(int argc, char* argv[]) {
     if (la_policy_implemented.find(la) == la_policy_implemented.end()) 
         std::cerr<<"Sub Assignement policy non available. Choose between AloneOnStride, CooperationOnStride and CooperationSplitTime"<<std::endl;
     
-    assert(!(size%2 !=0)                                                && "Even number of cores required.");
-    assert(!(nsub_x == 1 && la =="CooperationOnStride")                               && "CooperationOnStride not possibile with subx = 1.");
-    assert(!(nsub_x == 1 && la =="AloneOnStride")                               && "Increase the number of subx, AloneOnStride requires size = nsubx with size >= 2. ");
-    assert(!(size == nsub_x && (la =="CooperationOnStride" || la == "CooperationSplitTime"))     && "With size = nsubx, AloneOnStride is needed. If you want to use CooperationOnStride or CooperationSplitTime decrease the number of subx or increase the size.");
-    assert(!(la == "AloneOnStride" && size!=nsub_x && size>=2)                  && "AloneOnStride requires size = nsubx.");
-    assert(!((la == "CooperationOnStride" || la =="CooperationSplitTime") && size%nsub_x !=0)    && "CooperationOnStride and CooperationSplitTime require size proportional to nsubx.");
-    assert(!(method == "RAS" && la == "CooperationSplitTime" && nsub_t%size !=0)   && "CooperationSplitTime with RAS requires number of time subs proportional to number of cores.");
-    assert(!(nsub_t == 1 || nsub_x == 1)                                && "nsubx and nsubt must be >= 1.");
+    assert(!(size%2 !=0) 
+              && "Even number of cores required.");
+    assert(!(nsub_x == 1 && la =="CooperationOnStride") 
+              && "CooperationOnStride not possibile with subx = 1.");
+    assert(!(nsub_x == 1 && la =="AloneOnStride")         
+              && "Increase the number of subx, AloneOnStride requires size = nsubx with size >= 2. ");
+    assert(!(size == nsub_x && (la =="CooperationOnStride" || la == "CooperationSplitTime"))   
+              && "With size = nsubx, AloneOnStride is needed. If you want to use CooperationOnStride or CooperationSplitTime decrease the number of subx or increase the size.");
+    assert(!(la == "AloneOnStride" && size!=nsub_x && size>=2)         
+              && "AloneOnStride requires size = nsubx.");
+    assert(!((la == "CooperationOnStride" || la =="CooperationSplitTime") && size%nsub_x !=0)  
+              && "CooperationOnStride and CooperationSplitTime require size proportional to nsubx.");
+    assert(!(method == "RAS" && la == "CooperationSplitTime" && nsub_t%size !=0)  
+              && "CooperationSplitTime with RAS requires number of time subs proportional to number of cores.");
+    assert(!(nsub_t == 1 || nsub_x == 1)                            
+              && "nsubx and nsubt must be >= 1.");
     
-    
+    // ---------------------------------------------------------------------------------------------------
     Domain dom(nx, nt, X, T, nln);
     if(rank==0) {
         std::cout<<"Method used: "<<method<<std::endl;
@@ -74,12 +83,11 @@ int main(int argc, char* argv[]) {
     Decomposition DataDD(dom, nsub_x, nsub_t,n,m);
     if(rank==0){std::cout<<"Size of space sub: "<<DataDD.sub_sizes()[0]<<"  and time sub: "<<DataDD.sub_sizes()[1]<<std::endl;};
     
-
+    // read global problem matrices
     SpMat A=readMat_fromtxt(filenameA,nt*nx*nln*2,nt*nx*nln*2);
     SpMat b=readMat_fromtxt(filenameb,nt*nx*nln*2,1);
 
     SolverTraits traits(max_it,tol,tol_pipe_sx,it_wait);
-
     SolverResults res_obj;    
     
     if (method == "RAS" && la == "CooperationOnStride"){
@@ -112,18 +120,18 @@ int main(int argc, char* argv[]) {
         DomainDecSolverFactory<PipeParallel_CooperationSplitTime,CooperationOnStride> solver(dom,DataDD,local_mat,traits);
         res_obj=solver(method,A,b);
     }
-
     else{
         std::cerr<<"invalid method"<<std::endl;
         return 0;
     }
     
+    // postprocessing and save files
     auto res = res_obj.getUW();
     if (rank==0){
         std::cout<<res(0)<<std::endl;
         std::string f= "results/u.txt"; 
         saveVec_totxt(f,res);
-
+        // preapare the result for gnuplot
         res_obj.formatGNU(0,filename_coord,nx*nt,nln);
         res_obj.formatGNU(1,filename_coord,nx*nt,nln);
     }

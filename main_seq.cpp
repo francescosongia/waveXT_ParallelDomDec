@@ -38,7 +38,7 @@ int main(int argc, char* argv[]) {
     std::string filenameb = folder_root+"tests//"+test_name+"//b.txt";
     std::string filename_coord = folder_root+"tests//"+test_name+"//coord.txt";
     
-    assert(la=="AloneOnStride"                      && "Sequential policy required.");
+    assert(la=="AloneOnStride"              && "Sequential policy required.");
     assert(!(nsub_t == 1 || nsub_x == 1)    && "nsubx and nsubt must be >= 1.");
 
     // --------------------------------------------
@@ -50,6 +50,7 @@ int main(int argc, char* argv[]) {
     Decomposition DataDD(dom, nsub_x, nsub_t,n,m);
     std::cout<<"Size of space sub: "<<DataDD.sub_sizes()[0]<<"  and time sub: "<<DataDD.sub_sizes()[1]<<std::endl;
 
+    //read gloval matrices
     SpMat A=readMat_fromtxt(filenameA,nt*nx*nln*2,nt*nx*nln*2);
     SpMat b=readMat_fromtxt(filenameb,nt*nx*nln*2,1);
 
@@ -69,8 +70,7 @@ int main(int argc, char* argv[]) {
         DomainDecSolverFactory<PipeSequential,AloneOnStride> solver(dom,DataDD, local_mat,traits);
         res_obj=solver(method,A,b);
     }
-
-    
+    // postprocessing
     auto res = res_obj.getUW();
     std::cout<<res(0)<<std::endl;
     std::string f= "results//u.txt";

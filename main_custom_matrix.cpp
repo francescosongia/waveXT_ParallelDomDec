@@ -12,7 +12,8 @@
 
 
 int main(int argc, char* argv[]) {
-
+    
+    // read parameters and polices from getpot
     GetPot command_line(argc, argv);
     const std::string test_name = "custom";
     const std::string filename = ".//tests//"+test_name+"//data";
@@ -47,27 +48,32 @@ int main(int argc, char* argv[]) {
     MPI_Init(&argc, &argv);
     
     int rank{0},size{0};
-    
-    std::set<std::string> method_implemented = {"RAS", "PIPE" };
-    std::set<std::string> la_policy_implemented = {"AloneOnStride", "CooperationOnStride" };
-    if (method_implemented.find(method) == method_implemented.end()) 
-        std::cerr<<"Method non available. Choose between RAS and PIPE"<<std::endl;
-    if (la_policy_implemented.find(la) == la_policy_implemented.end()) 
-        std::cerr<<"Sub Assignment policy non available. Choose between AloneOnStride and CooperationOnStride"<<std::endl;
-
-
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-    assert(!(la != "AloneOnStride")                            && "Custom matrix not possible with CooperationOnStride or CooperationSplitTime.");
-    assert(!(size%2 !=0)                               && "Even number of cores required.");
-    assert(!(nsub_x == 1 && la =="CooperationOnStride")              && "CooperationOnStride not possibile with subx = 1.");
-    assert(!(nsub_x == 1 && la =="AloneOnStride")              && "Increase the number of subx, AloneOnStride requires size = nsubx with size >= 2. ");
-    assert(!(size == nsub_x && la =="CooperationOnStride")           && "With size = nsubx, AloneOnStride is needed. If you want to use CooperationOnStride decrease the number of subx.");
-    assert(!(la == "AloneOnStride" && size!=nsub_x && size>=2) && "AloneOnStride requires size = nsubx.");
-    assert(!(la == "CooperationOnStride" && size%nsub_x !=0)         && "CooperationOnStride requires size proportional to nsubx.");
-    assert(!(nsub_t == 1 || nsub_x == 1)               && "nsubx and nsubt must be >= 1.");
 
+    // check parameters and policies
+    std::set<std::string> method_implemented = {"RAS", "PIPE" };
+    if (method_implemented.find(method) == method_implemented.end()) 
+        std::cerr<<"Method non available. Choose between RAS and PIPE"<<std::endl;
 
+    assert(!(la != "AloneOnStride")   
+           && "Custom matrix not possible with CooperationOnStride or CooperationSplitTime.");
+    assert(!(size%2 !=0)          
+           && "Even number of cores required.");
+    assert(!(nsub_x == 1 && la =="CooperationOnStride")  
+           && "CooperationOnStride not possibile with subx = 1.");
+    assert(!(nsub_x == 1 && la =="AloneOnStride")     
+           && "Increase the number of subx, AloneOnStride requires size = nsubx with size >= 2. ");
+    assert(!(size == nsub_x && la =="CooperationOnStride") 
+           && "With size = nsubx, AloneOnStride is needed. If you want to use CooperationOnStride decrease the number of subx.");
+    assert(!(la == "AloneOnStride" && size!=nsub_x && size>=2) 
+           && "AloneOnStride requires size = nsubx.");
+    assert(!(la == "CooperationOnStride" && size%nsub_x !=0)   
+           && "CooperationOnStride requires size proportional to nsubx.");
+    assert(!(nsub_t == 1 || nsub_x == 1)   
+           && "nsubx and nsubt must be >= 1.");
+
+    // --------------------------------------------------------------------------
     // CUSTOM MATRIX
     Eigen::MatrixXi custom_matrix_sub_assignment(nsub_x, nsub_t);
     // random
@@ -76,9 +82,8 @@ int main(int argc, char* argv[]) {
         std::uniform_int_distribution<> dis(0, size-1);
         
         for (int i = 0; i < custom_matrix_sub_assignment.rows(); ++i) {
-            for (int j = 0; j < custom_matrix_sub_assignment.cols(); ++j) {
+            for (int j = 0; j < custom_matrix_sub_assignment.cols(); ++j) 
                 custom_matrix_sub_assignment(i, j) = dis(gen);
-            }
         }
     }
     //from file
@@ -115,8 +120,7 @@ int main(int argc, char* argv[]) {
     Decomposition DataDD(dom, nsub_x, nsub_t,n,m);
     if(rank==0){std::cout<<"Size of space sub: "<<DataDD.sub_sizes()[0]<<"  and time sub: "<<DataDD.sub_sizes()[1]<<std::endl;};
     
-    
-
+    //read global matrices from file
     SpMat A=readMat_fromtxt(filenameA,nt*nx*nln*2,nt*nx*nln*2);
     SpMat b=readMat_fromtxt(filenameb,nt*nx*nln*2,1);
 
@@ -138,7 +142,7 @@ int main(int argc, char* argv[]) {
         std::cerr<<"invalid method"<<std::endl;
         return 0;
     }
-
+    // postprocessing
     auto res = res_obj.getUW();
     if (rank==0){
         std::cout<<res(0)<<std::endl;
