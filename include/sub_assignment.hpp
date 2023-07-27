@@ -13,7 +13,7 @@ public:
       {};  
 
   
-  //custom solo per seqla   
+  //custom matrix to assign subdomains
   SubAssignment(int nproc, unsigned int nsubx,unsigned int nsubt, const Eigen::MatrixXi& sub_division)
       : np_(nproc), nsub_x_(nsubx), nsub_t_(nsubt), sub_division_(sub_division), sub_division_vec_(nproc),custom_matrix_(true)
       {
@@ -36,17 +36,18 @@ public:
 
  
 protected:
-  int np_;
+  int np_; //number of processes
   int nsub_x_;
   int nsub_t_;
 
+  // structures that contain the subdomains numbers assigned to each of the processes
   Eigen::MatrixXi sub_division_;
   std::vector<Eigen::VectorXi> sub_division_vec_;
 
+  // flag to underline if a custom matrix for subs assighment is provided
   bool custom_matrix_;
 
   
-
 public:
   auto np() const { return np_; };
   auto nsub_x() const { return nsub_x_; };
@@ -57,29 +58,54 @@ public:
 
   virtual void createSubDivision() = 0;
 
-  unsigned int idxSub_to_LocalNumbering(unsigned int k,int current_rank) const  //con le policy attuali tutte possono usare questa stessa funzione
-                                                                                // con policy future considerare di fare overlaod
+  
+  unsigned int idxSub_to_LocalNumbering(unsigned int k,int current_rank) const  
+  // returns the index in the local matrices storage structures correpsonding to subdomain k.
+  // for the policies presented here this function is the same so it is declared here. 
+  // for future policies consider to overload it if a different behaviour is needed
   {
     auto sub_division_vec = this->sub_division_vec_[current_rank];
     auto local_k = k-sub_division_vec(0)+1;
     return local_k;
   }; 
+  
 
 };
 
+/*
+   SUB ASSIGNMENT POLICIES
+- AloneOnStride
+    On each temporal stride only one core is working. It is suited for the fully sequential version or for the parallel one 
+    in which the linear algebra is maintened sequential and each temporal stride is assigned to a different core
+
+- CooperationOnStride         
+    On each temporal stride more cores are working. It is suited for the parallel version where the linear algebra is parallelized
+    between the cores working on the same stride. 
+    This policy is used also for RasPipelined in a SplitTime fashion: more cores work on the same stride but they cooperated dividing
+    the corresponding time subdomains between them. 
+
+- CooperationCooperationSplitTime        
+    On each temporal stride more cores are working and they further divide in the time direction the subdomains assigned. It can be seen
+    as a complete subdivision among space and time. It is suited for RAS method.
+
+*/
+
+
+
+
 // SEQUENTIAL LINEAR ALGEBRA.
 // it does not mean that all the solver is sequential, it could be parallelized by assigning the subdomains to different processes
-class SeqLA : public SubAssignment<SeqLA>
+class AloneOnStride : public SubAssignment<AloneOnStride>
 {
   public:
-    SeqLA(int nproc, unsigned int nsubx,unsigned int nsubt):
-     SubAssignment<SeqLA>(nproc,nsubx,nsubt)
+    AloneOnStride(int nproc, unsigned int nsubx,unsigned int nsubt):
+     SubAssignment<AloneOnStride>(nproc,nsubx,nsubt)
      {
         this->sub_division_.resize(nproc,(nsubx/nproc)*nsubt);
      };
 
-    SeqLA(int nproc, unsigned int nsubx,unsigned int nsubt,const Eigen::MatrixXi& sub_division):
-     SubAssignment<SeqLA>(nproc,nsubx,nsubt,sub_division)
+    AloneOnStride(int nproc, unsigned int nsubx,unsigned int nsubt,const Eigen::MatrixXi& sub_division):
+     SubAssignment<AloneOnStride>(nproc,nsubx,nsubt,sub_division)
      {};
 
     void createSubDivision() override
@@ -100,9 +126,7 @@ class SeqLA : public SubAssignment<SeqLA>
         else if(this->np_ == 1){
           this->sub_division_.setZero();
           auto temp = Eigen::VectorXi::LinSpaced(this->nsub_t_*this->nsub_x_, 1, this->nsub_t_*this->nsub_x_) ;
-          this->sub_division_vec_[0]=temp;
-          //this->sub_division_vec_.push_back(temp);
-          
+          this->sub_division_vec_[0]=temp;          
         }
         else
           std::cerr<<"error in subs assignment among processes"<<std::endl;
@@ -115,16 +139,16 @@ class SeqLA : public SubAssignment<SeqLA>
 
 
 // PARALLEL LINEAR ALGEBRA
-class ParLA : public SubAssignment<ParLA>
+class CooperationOnStride : public SubAssignment<CooperationOnStride>
 {
   public:
-    ParLA(int nproc, unsigned int nsubx,unsigned int nsubt): SubAssignment<ParLA>(nproc,nsubx,nsubt) 
+    CooperationOnStride(int nproc, unsigned int nsubx,unsigned int nsubt): SubAssignment<CooperationOnStride>(nproc,nsubx,nsubt) 
     {};
     
-    ParLA(int nproc, unsigned int nsubx,unsigned int nsubt,const Eigen::MatrixXi& sub_division): 
-      SubAssignment<ParLA>(nproc,nsubx,nsubt,sub_division) 
+    CooperationOnStride(int nproc, unsigned int nsubx,unsigned int nsubt,const Eigen::MatrixXi& sub_division): 
+      SubAssignment<CooperationOnStride>(nproc,nsubx,nsubt,sub_division) 
     {
-      std::cerr<<"custom sub assignment is not possible with ParLA"<<std::endl;
+      std::cerr<<"custom sub assignment is not possible with CooperationOnStride"<<std::endl;
     };
 
     void createSubDivision() override
@@ -152,18 +176,22 @@ class ParLA : public SubAssignment<ParLA>
 
 };
 
-class SplitTime : public SubAssignment<SplitTime>
+
+
+
+
+class CooperationSplitTime : public SubAssignment<CooperationSplitTime>
 {
   public:
-    SplitTime(int nproc, unsigned int nsubx,unsigned int nsubt): SubAssignment<SplitTime>(nproc,nsubx,nsubt) 
+    CooperationSplitTime(int nproc, unsigned int nsubx,unsigned int nsubt): SubAssignment<CooperationSplitTime>(nproc,nsubx,nsubt) 
     {
       sub_division_.resize(nproc, nsubx*nsubt/nproc);
     };
     
-    SplitTime(int nproc, unsigned int nsubx,unsigned int nsubt,const Eigen::MatrixXi& sub_division): 
-      SubAssignment<SplitTime>(nproc,nsubx,nsubt,sub_division) 
+    CooperationSplitTime(int nproc, unsigned int nsubx,unsigned int nsubt,const Eigen::MatrixXi& sub_division): 
+      SubAssignment<CooperationSplitTime>(nproc,nsubx,nsubt,sub_division) 
     {
-      std::cerr<<"custom sub assignment is not possible with SplitTime"<<std::endl;
+      std::cerr<<"custom sub assignment is not possible with CooperationSplitTime"<<std::endl;
     };
 
 
@@ -173,7 +201,7 @@ class SplitTime : public SubAssignment<SplitTime>
       int partition{0};
       partition = this->np_ / this->nsub_x_ ;  //how many process are assigned to a single time stride
       int time_partition{0};
-      time_partition = this->nsub_t_ / partition ; // ASSERT CHE SIANO DIVISIBILI
+      time_partition = this->nsub_t_ / partition ; 
 
 
       Eigen::VectorXi list=Eigen::VectorXi::LinSpaced(this->np_,0,this->np_-1);  

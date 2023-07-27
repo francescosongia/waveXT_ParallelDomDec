@@ -17,25 +17,16 @@ public:
     P func_wrapper(this->domain,this->DataDD,this->local_mat,this->traits_);
     return func_wrapper.solve(A,b);
   };
-
-
-protected:
-  // Eigen::VectorXd precondAction(const SpMat& x) override
-  // {
-  //   P func_wrapper(this->domain,this->DataDD,this->local_mat,this->traits_);
-  //   return func_wrapper.precondAction(x);
-  // };
-
 };
 
 
 // --------------------------------------------------------------------------------
 // PARALLEL
-//### Parallel_SeqLA: sequential linear algebra but subs assigned to different processes
+//### Parallel_AloneOnStride: sequential linear algebra but subs assigned to different processes
 //      precondAction
 //      solve
 
-//### Parallel_ParLA: parallel linear algebra and subs assigned to different processes
+//### Parallel_CooperationOnStride: parallel linear algebra and subs assigned to different processes
 //      precondAction
 //      solve
 // --------------------------------------------------------------------------------
@@ -46,11 +37,11 @@ protected:
 // --------------------------------------------------------------------------------
  
 
-class Parallel_SeqLA : public Ras<Parallel_SeqLA,SeqLA>
+class Parallel_AloneOnStride : public Ras<Parallel_AloneOnStride,AloneOnStride>
 {
   public:
-    Parallel_SeqLA(Domain dom, const Decomposition& dec,const LocalMatrices<SeqLA>& local_matrices,const SolverTraits& traits) :
-     Ras<Parallel_SeqLA,SeqLA>(dom,dec,local_matrices,traits) {};
+    Parallel_AloneOnStride(Domain dom, const Decomposition& dec,const LocalMatrices<AloneOnStride>& local_matrices,const SolverTraits& traits) :
+     Ras<Parallel_AloneOnStride,AloneOnStride>(dom,dec,local_matrices,traits) {};
 
     Eigen::VectorXd 
     precondAction(const SpMat& x) 
@@ -61,9 +52,7 @@ class Parallel_SeqLA : public Ras<Parallel_SeqLA,SeqLA>
 
       
       auto sub_division_vec = local_mat.sub_assignment().sub_division_vec()[local_mat.rank()];
-      for(unsigned int k : sub_division_vec){    
-          // Eigen::SparseLU<SpMat > lu;
-          // lu.compute(local_mat.getAk(k));      
+      for(unsigned int k : sub_division_vec){        
           auto temp = local_mat.getRk(k); // temp contains R_k and Rtilde_k
           uk = this->get_LU_k(k).solve(temp.first*x);
           z=z+(temp.second.transpose())*uk;
@@ -94,7 +83,7 @@ class Parallel_SeqLA : public Ras<Parallel_SeqLA,SeqLA>
 
       Eigen::VectorXd z = precondAction(b);
       while(res>tol and niter<max_it){
-          uw1 = uw0 + z;  //forse si puo evitare l'uso di entrambi uw0 e uw1
+          uw1 = uw0 + z;  
           z = precondAction(b - A*uw1);
           res = (z/Pb2).norm();
           relres2P_vec.push_back(res);
@@ -124,11 +113,11 @@ class Parallel_SeqLA : public Ras<Parallel_SeqLA,SeqLA>
 };
 
 
-class Sequential : public Ras<Sequential,SeqLA>
+class Sequential : public Ras<Sequential,AloneOnStride>
 {
 public:
-  Sequential(Domain dom, const Decomposition& dec,const LocalMatrices<SeqLA>& local_matrices,const SolverTraits& traits) :
-   Ras<Sequential,SeqLA>(dom,dec,local_matrices,traits) {};
+  Sequential(Domain dom, const Decomposition& dec,const LocalMatrices<AloneOnStride>& local_matrices,const SolverTraits& traits) :
+   Ras<Sequential,AloneOnStride>(dom,dec,local_matrices,traits) {};
   
   Eigen::VectorXd precondAction(const SpMat& x) 
   {
@@ -137,9 +126,6 @@ public:
     Eigen::VectorXd z = Eigen::VectorXd::Zero(domain.nln()*domain.nt()*domain.nx()*2);
     Eigen::VectorXd uk(domain.nln()*DataDD.sub_sizes()[0]*DataDD.sub_sizes()[1]*2);
     for(unsigned int k = 1; k <= DataDD.nsub(); ++k){
-
-        // Eigen::SparseLU<SpMat > lu;
-        // lu.compute(local_mat.getAk(k));
         auto temp = local_mat.getRk(k);
         uk = this->get_LU_k(k).solve(temp.first*x);
         z = z + (temp.second.transpose())*uk;
@@ -166,7 +152,7 @@ public:
 
     Eigen::VectorXd z = precondAction(b);
     while(res>tol and niter<max_it){
-        uw1 = uw0 + z;  //forse si puo evitare l'uso di entrambi uw0 e uw1
+        uw1 = uw0 + z;  
         z = precondAction(b-A*uw1);
         res = (z/Pb2).norm();
         relres2P_vec.push_back(res);
@@ -189,7 +175,7 @@ public:
 
 
 
-class Parallel_ParLA : public Ras<Parallel_ParLA,ParLA>
+class Parallel_CooperationOnStride : public Ras<Parallel_CooperationOnStride,CooperationOnStride>
 {
   private:
     int partition_;
@@ -201,8 +187,8 @@ class Parallel_ParLA : public Ras<Parallel_ParLA,ParLA>
     std::vector<int> dim_cum_vec2_;
 
   public:
-    Parallel_ParLA(Domain dom, const Decomposition& dec,const LocalMatrices<ParLA>& local_matrices,const SolverTraits& traits) :
-     Ras<Parallel_ParLA,ParLA>(dom,dec,local_matrices,traits), 
+    Parallel_CooperationOnStride(Domain dom, const Decomposition& dec,const LocalMatrices<CooperationOnStride>& local_matrices,const SolverTraits& traits) :
+     Ras<Parallel_CooperationOnStride,CooperationOnStride>(dom,dec,local_matrices,traits), 
      partition_( local_matrices.sub_assignment().np() /DataDD.nsub_x()), dim_local_res_vec1_(local_matrices.sub_assignment().np(),0),
      dim_cum_vec1_(local_matrices.sub_assignment().np(),0), dim_local_res_vec2_(local_matrices.sub_assignment().np(),0), 
      dim_cum_vec2_(local_matrices.sub_assignment().np(),0)
@@ -241,7 +227,6 @@ class Parallel_ParLA : public Ras<Parallel_ParLA,ParLA>
       int dim_k{static_cast<int>(domain.nln()*DataDD.sub_sizes()[0]*DataDD.sub_sizes()[1]*2)};
 
       Eigen::VectorXd z=Eigen::VectorXd::Zero(dim_res);
-      Eigen::VectorXd zero=Eigen::VectorXd::Zero(dim_res);
       Eigen::VectorXd uk(dim_k);
 
       /*
@@ -256,8 +241,6 @@ class Parallel_ParLA : public Ras<Parallel_ParLA,ParLA>
 
       auto sub_division_vec = local_mat.sub_assignment().sub_division_vec()[local_mat.rank()];
       for(unsigned int k : sub_division_vec){    
-          // Eigen::SparseLU<SpMat > lu;
-          // lu.compute(local_mat.getAk(k));
           auto temp = local_mat.getRk(k);
 
           // prod1: temp.first*x
@@ -297,10 +280,24 @@ class Parallel_ParLA : public Ras<Parallel_ParLA,ParLA>
 
       // The main processes of each time stride collect and sum the results with Allreduce
 
-      if(rank<this->partition_)
-        MPI_Allreduce(MPI_IN_PLACE, z.data(), domain.nln()*domain.nt()*domain.nx()*2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-      else
-        MPI_Allreduce(zero.data(), z.data(), domain.nln()*domain.nt()*domain.nx()*2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+      MPI_Comm master_comm; // communicator with one member for each temporal stride
+      MPI_Comm workers_comm; // communicator with all helpers cores
+
+      int color,color2;
+      color = (rank < DataDD.nsub_x()) ? 0 : 1;
+      color2 = (rank >= DataDD.nsub_x() || rank == 0) ? 0 : 1;
+
+      MPI_Comm_split(MPI_COMM_WORLD, color, rank, &master_comm);
+      MPI_Comm_split(MPI_COMM_WORLD, color2, rank, &workers_comm);
+      // master ranks sums the result between them
+      if(color==0)
+        MPI_Allreduce(MPI_IN_PLACE, z.data(), domain.nln()*domain.nt()*domain.nx()*2, MPI_DOUBLE, MPI_SUM, master_comm);
+      // then rank0 communicate the final result to all others ranks
+      if (color2 == 0)
+        MPI_Bcast(z.data(), domain.nln()*domain.nt()*domain.nx()*2, MPI_DOUBLE, 0, workers_comm);
+
+      MPI_Comm_free(&master_comm);
+      MPI_Comm_free(&workers_comm);
 
       return z;
     }
@@ -382,11 +379,11 @@ class Parallel_ParLA : public Ras<Parallel_ParLA,ParLA>
 
 
 
-class Parallel_SplitTime : public Ras<Parallel_SplitTime,SplitTime>
+class Parallel_CooperationSplitTime : public Ras<Parallel_CooperationSplitTime,CooperationSplitTime>
 {
   public:
-    Parallel_SplitTime(Domain dom, const Decomposition& dec,const LocalMatrices<SplitTime>& local_matrices,const SolverTraits& traits) :
-     Ras<Parallel_SplitTime,SplitTime>(dom,dec,local_matrices,traits) {};
+    Parallel_CooperationSplitTime(Domain dom, const Decomposition& dec,const LocalMatrices<CooperationSplitTime>& local_matrices,const SolverTraits& traits) :
+     Ras<Parallel_CooperationSplitTime,CooperationSplitTime>(dom,dec,local_matrices,traits) {};
 
     Eigen::VectorXd 
     precondAction(const SpMat& x) 
@@ -400,9 +397,7 @@ class Parallel_SplitTime : public Ras<Parallel_SplitTime,SplitTime>
 
       auto sub_division_vec = local_mat.sub_assignment().sub_division_vec()[local_mat.rank()];
   
-      for(unsigned int k : sub_division_vec){    
-          // Eigen::SparseLU<SpMat > lu;
-          // lu.compute(local_mat.getAk(k));      
+      for(unsigned int k : sub_division_vec){     
           auto temp = local_mat.getRk(k); // temp contains R_k and Rtilde_k
           uk = this->get_LU_k(k).solve(temp.first*x);
           z=z+(temp.second.transpose())*uk;
@@ -437,7 +432,7 @@ class Parallel_SplitTime : public Ras<Parallel_SplitTime,SplitTime>
 
       Eigen::VectorXd z = precondAction(b);
       while(res>tol and niter<max_it){
-          uw1 = uw0 + z;  //forse si puo evitare l'uso di entrambi uw0 e uw1
+          uw1 = uw0 + z; 
           z = precondAction(b - A*uw1);
           res = (z/Pb2).norm();
           relres2P_vec.push_back(res);

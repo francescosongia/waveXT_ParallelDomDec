@@ -8,7 +8,7 @@
 
 int main(int argc, char* argv[]) {
 
-     // tramite Getpot leggo tutti i parametri utili per la risoluzione
+     // Getpot to read parameters
     GetPot command_line(argc, argv);
     const std::string test_name = command_line.follow("test1", 1, "-t", "--test");
     const std::string filename = ".//tests//"+test_name+"//data";
@@ -28,7 +28,7 @@ int main(int argc, char* argv[]) {
     int m = datafile("parameters/decomposition/size_subt", 0);
 
     std::string method= datafile("parameters/traits/method", "RAS");
-    std::string la= datafile("parameters/traits/linear_algebra", "SeqLA");
+    std::string la= datafile("parameters/traits/linear_algebra", "AloneOnStride");
     unsigned int max_it = datafile("parameters/traits/max_iter", 100);
     double tol = datafile("parameters/traits/tol", 1e-10);
     double tol_pipe_sx = datafile("parameters/traits/tol_pipe_sx", 1e-10);
@@ -38,8 +38,10 @@ int main(int argc, char* argv[]) {
     std::string filenameb = folder_root+"tests//"+test_name+"//b.txt";
     std::string filename_coord = folder_root+"tests//"+test_name+"//coord.txt";
     
-    assert(la=="SeqLA"                      && "Sequential policy required.");
+    assert(la=="AloneOnStride"                      && "Sequential policy required.");
     assert(!(nsub_t == 1 || nsub_x == 1)    && "nsubx and nsubt must be >= 1.");
+
+    // --------------------------------------------
 
     Domain dom(nx, nt, X, T, nln);    
 
@@ -57,14 +59,14 @@ int main(int argc, char* argv[]) {
     int np = 1; 
     int rank = 0;
 
-    LocalMatrices<SeqLA> local_mat(dom, DataDD, A, np, rank);
+    LocalMatrices<AloneOnStride> local_mat(dom, DataDD, A, np, rank);
     SolverResults res_obj;
-    if (method == "RAS" && la =="SeqLA"){
-        DomainDecSolverFactory<Sequential,SeqLA> solver(dom,DataDD, local_mat,traits);
+    if (method == "RAS" && la =="AloneOnStride"){
+        DomainDecSolverFactory<Sequential,AloneOnStride> solver(dom,DataDD, local_mat,traits);
         res_obj=solver(method,A,b);
     }
     else{ // PIPE
-        DomainDecSolverFactory<PipeSequential,SeqLA> solver(dom,DataDD, local_mat,traits);
+        DomainDecSolverFactory<PipeSequential,AloneOnStride> solver(dom,DataDD, local_mat,traits);
         res_obj=solver(method,A,b);
     }
 

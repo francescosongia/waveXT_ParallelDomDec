@@ -9,6 +9,12 @@
 #include <string>
 #include <utility>
 
+
+/*
+SOLVER FACTORY
+create pointers a solver object and run with the operator () the solve method
+*/
+
 template< class P,class LA>
 class DomainDecSolverFactory {
   
@@ -46,14 +52,5 @@ public:
     return {nullptr};
   };
 };
-
-/*
-provato a pensare invece di creare puntatore a ras o pipe di ritornare il puntatore gia a parallel_seqla ecc...
-in questo caso non creo il funcwrapper in ras ma faccio direttamente l'override di solve e precondaction nelle 
-figlie parallel_seqla ecc. 
-Pero non funziona perche createSOlver qui sopra è definito come puntatore a solverbase<P,LA>. per farlo funzionare forse 
-dovrei togliere le classi medie (ras e pipe) e fare parallel_seqla ecc direttamente figlie di solverbase. Perderei cosi 
-un minimo di divisione tra ras e pipe perche metto tutto assieme. lasciamo cosi com'è pero tenere presente questo
-*/
 
 #endif

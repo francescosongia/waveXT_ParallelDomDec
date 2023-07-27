@@ -6,12 +6,13 @@
 #include <fstream>
 
 typedef Eigen::SparseMatrix<double> SpMat; // declares a column-major sparse matrix type of double
-//typedef Eigen::SparseMatrix<double,Eigen::RowMajor> SpMat;
 
-SpMat readMat_fromtxt(const std::string& filename, unsigned int rows,unsigned int cols) {  //dim:nln*nt*nx*2
+/*
+HELPER FUNCTIONS TO EXCHANGE INFORMATION BETWEEN TXT FILES AND EIGEN
+*/
+
+SpMat readMat_fromtxt(const std::string& filename, unsigned int rows,unsigned int cols) {  
     std::vector<T> tripletList;
-    //tripletList.reserve();
-
     std::vector<std::string> row;
     std::string line, word;
 
@@ -33,9 +34,6 @@ SpMat readMat_fromtxt(const std::string& filename, unsigned int rows,unsigned in
     return A;
 }
 
-//Eigen::VectorXd readVec_fromtxt(const std::string& filename);
-
-//void saveSMat_totxt(const std::string& filename,const SpMat& A);
 
 void saveVec_totxt(const std::string& filename,const Eigen::VectorXd& v) {
     std::ofstream file;

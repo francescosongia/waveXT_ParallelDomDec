@@ -11,7 +11,7 @@ public:
   RasPipelined(Domain dom,const Decomposition& dec,const LocalMatrices<LA>& local_matrices,const SolverTraits& traits) : 
         DomainDecSolverBase<P,LA>(dom,dec,local_matrices,traits), matrix_domain_(dec.nsub_t(),dec.nsub_x())
         {   
-            // matrix_domain_ is a mtrix representing the domain, it will support the computations
+            // matrix_domain_ is a matrix representing the domain, it will support the computations
             Eigen::VectorXi list=Eigen::VectorXi::LinSpaced(dec.nsub(),1,dec.nsub());  
             matrix_domain_=list.transpose().reshaped(dec.nsub_t(),dec.nsub_x());  
         };
@@ -38,41 +38,16 @@ public:
 protected:
     Eigen::MatrixXi matrix_domain_;
 
-
-    // Eigen::VectorXd precondAction(const SpMat& x) override
-    // {   
-    //     // update the zone and then solve the local problems in the subdomains
-    //     P func_wrapper(this->domain,this->DataDD,this->local_mat,this->traits_);
-    //     auto res=func_wrapper.precondAction(x); 
-        
-    //     // update parameters for zone evolution 
-    //     this->traits_.setZone(func_wrapper.traits().zone());
-    //     this->traits_.setSubtSx(func_wrapper.traits().subt_sx());
-    //     this->traits_.setItWaited(func_wrapper.traits().it_waited());
-    //     this->traits_.setSolves(func_wrapper.traits().solves());
-
-    //     return res;
-    // };
-
-
-    // unsigned int check_sx(const Eigen::VectorXd& v)
-    // {
-    //     // check if the left side of the zone has reached convergence
-    //     // and it returns the left element of the zone (of the first time stride)
-    //     P func_wrapper(this->domain,this->DataDD,this->local_mat,this->traits_);
-    //     return func_wrapper.check_sx(v); 
-    // };
-
 };
 
 // --------------------------------------------------------------------------------
 // PARALLEL
-//### PipeParallel_SeqLA: sequential linear algebra but subs assigned to different processes
+//### PipeParallel_AloneOnStride: sequential linear algebra but subs assigned to different processes
 //      precondAction
 //      check_sx
 //      solve
 
-//### PipeParallel_ParLA: parallel linear algebra and subs assigned to different processes
+//### PipeParallel_CooperationOnStride: parallel linear algebra and subs assigned to different processes
 //      precondAction
 //      check_sx
 //      solve
@@ -85,11 +60,11 @@ protected:
 // --------------------------------------------------------------------------------
  
 
-class PipeParallel_SeqLA : public RasPipelined<PipeParallel_SeqLA,SeqLA>
+class PipeParallel_AloneOnStride : public RasPipelined<PipeParallel_AloneOnStride,AloneOnStride>
 {
   public:
-    PipeParallel_SeqLA(Domain dom,const Decomposition& dec,const LocalMatrices<SeqLA>& local_matrices, const SolverTraits& traits) : 
-    RasPipelined<PipeParallel_SeqLA,SeqLA>(dom,dec,local_matrices,traits) 
+    PipeParallel_AloneOnStride(Domain dom,const Decomposition& dec,const LocalMatrices<AloneOnStride>& local_matrices, const SolverTraits& traits) : 
+    RasPipelined<PipeParallel_AloneOnStride,AloneOnStride>(dom,dec,local_matrices,traits) 
     { };
     
     SolverResults solve(const SpMat& A, const SpMat& b) override
@@ -173,7 +148,7 @@ class PipeParallel_SeqLA : public RasPipelined<PipeParallel_SeqLA,SeqLA>
               it_waited_++;
           }
       } 
-      // nsubt > = subt_sx+2 hypotesis   //INSERIRE QUESTO CHECK?
+      // nsubt > = subt_sx+2 hypotesis   
 
       unsigned int dx=subt_sx_+zone_;
       // -------------------------------------------------------------------------
@@ -185,8 +160,6 @@ class PipeParallel_SeqLA : public RasPipelined<PipeParallel_SeqLA,SeqLA>
       Eigen::VectorXd uk(this->domain.nln()*this->DataDD.sub_sizes()[0]*this->DataDD.sub_sizes()[1]*2);
 
       for(unsigned int k:sub_in_zone){
-        //   Eigen::SparseLU<SpMat > lu;
-        //   lu.compute(this->local_mat.getAk(k));
           auto temp = this->local_mat.getRk(k);
           uk = this->get_LU_k(k).solve(temp.first*x);
           z=z+(temp.second.transpose())*uk;
@@ -242,7 +215,7 @@ class PipeParallel_SeqLA : public RasPipelined<PipeParallel_SeqLA,SeqLA>
 };
 
 
-class PipeParallel_ParLA : public RasPipelined<PipeParallel_ParLA,ParLA>
+class PipeParallel_CooperationOnStride : public RasPipelined<PipeParallel_CooperationOnStride,CooperationOnStride>
 {
   private:
     int partition_;
@@ -254,9 +227,9 @@ class PipeParallel_ParLA : public RasPipelined<PipeParallel_ParLA,ParLA>
     std::vector<int> dim_cum_vec2_;
 
   public:
-    PipeParallel_ParLA(Domain dom, const Decomposition& dec,const LocalMatrices<ParLA>& local_matrices, const SolverTraits& traits):
+    PipeParallel_CooperationOnStride(Domain dom, const Decomposition& dec,const LocalMatrices<CooperationOnStride>& local_matrices, const SolverTraits& traits):
                          
-    RasPipelined<PipeParallel_ParLA,ParLA>(dom,dec,local_matrices,traits),
+    RasPipelined<PipeParallel_CooperationOnStride,CooperationOnStride>(dom,dec,local_matrices,traits),
      partition_( local_matrices.sub_assignment().np() /DataDD.nsub_x()), dim_local_res_vec1_(local_matrices.sub_assignment().np(),0),
      dim_cum_vec1_(local_matrices.sub_assignment().np(),0), dim_local_res_vec2_(local_matrices.sub_assignment().np(),0), 
      dim_cum_vec2_(local_matrices.sub_assignment().np(),0)
@@ -364,7 +337,6 @@ class PipeParallel_ParLA : public RasPipelined<PipeParallel_ParLA,ParLA>
       int dim_k{static_cast<int>(domain.nln()*DataDD.sub_sizes()[0]*DataDD.sub_sizes()[1]*2)};
 
       Eigen::VectorXd z=Eigen::VectorXd::Zero(dim_res);
-      Eigen::VectorXd zero=Eigen::VectorXd::Zero(dim_res);
       unsigned int it_wait=this->traits_.it_wait();
 
       // --------- ZONE UPDATE -----------------------------------------------------
@@ -392,7 +364,7 @@ class PipeParallel_ParLA : public RasPipelined<PipeParallel_ParLA,ParLA>
       unsigned int dx=subt_sx_+zone_;
       // ---------------------------------------------------------------------------
 
-      auto zonematrix=matrix_domain_(Eigen::seq(subt_sx_-1,dx-2),Eigen::seq(rank%partition_,rank%partition_));//Eigen::seq(i_group_la*partition_, (i_group_la+1)*partition_-partition_));
+      auto zonematrix=matrix_domain_(Eigen::seq(subt_sx_-1,dx-2),Eigen::seq(rank%partition_,rank%partition_));
       Eigen::VectorXi sub_in_zone=zonematrix.reshaped();
       solves_+=sub_in_zone.size();
 
@@ -409,8 +381,6 @@ class PipeParallel_ParLA : public RasPipelined<PipeParallel_ParLA,ParLA>
       Eigen::VectorXd local_prod2(dim_local_res_vec2_[rank]);
 
       for(unsigned int k:sub_in_zone){
-        //   Eigen::SparseLU<SpMat > lu;
-        //   lu.compute(this->local_mat.getAk(k));
           auto temp = this->local_mat.getRk(k);
 
           // prod1: temp.first*x
@@ -448,11 +418,25 @@ class PipeParallel_ParLA : public RasPipelined<PipeParallel_ParLA,ParLA>
       }
 
       // The main processes of each time stride collect and sum the results with Allreduce
-      if(rank<this->partition_)
-        MPI_Allreduce(MPI_IN_PLACE, z.data(), domain.nln()*domain.nt()*domain.nx()*2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-      else
-        MPI_Allreduce(zero.data(), z.data(), domain.nln()*domain.nt()*domain.nx()*2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
+      MPI_Comm master_comm; // communicator with one member for each temporal stride
+      MPI_Comm workers_comm; // communicator with all helpers cores
+
+      int color,color2;
+      color = (rank < DataDD.nsub_x()) ? 0 : 1;
+      color2 = (rank >= DataDD.nsub_x() || rank == 0) ? 0 : 1;
+
+      MPI_Comm_split(MPI_COMM_WORLD, color, rank, &master_comm);
+      MPI_Comm_split(MPI_COMM_WORLD, color2, rank, &workers_comm);
+      // master ranks sums the result between them
+      if(color==0)
+        MPI_Allreduce(MPI_IN_PLACE, z.data(), domain.nln()*domain.nt()*domain.nx()*2, MPI_DOUBLE, MPI_SUM, master_comm);
+      // then rank0 communicate the final result to all others ranks
+      if (color2 == 0)
+        MPI_Bcast(z.data(), domain.nln()*domain.nt()*domain.nx()*2, MPI_DOUBLE, 0, workers_comm);
+
+      MPI_Comm_free(&master_comm);
+      MPI_Comm_free(&workers_comm);
 
       this->traits_.setZone(zone_);
       this->traits_.setSolves(solves_);
@@ -509,6 +493,7 @@ class PipeParallel_ParLA : public RasPipelined<PipeParallel_ParLA,ParLA>
       }
     
       // The main processes of each time stride check the subdomains assigned and then intersect the results with Allreduce
+      // the other ones send only one integer (1) that does not change the result
       int base{1};
       if(rank<this->partition_)
         MPI_Allreduce(MPI_IN_PLACE, &fail, 1, MPI_INT, MPI_PROD, MPI_COMM_WORLD);
@@ -523,11 +508,11 @@ class PipeParallel_ParLA : public RasPipelined<PipeParallel_ParLA,ParLA>
 };
 
 
-class PipeSequential : public RasPipelined<PipeSequential,SeqLA>
+class PipeSequential : public RasPipelined<PipeSequential,AloneOnStride>
 {
   public:
-    PipeSequential(Domain dom, const Decomposition& dec,const LocalMatrices<SeqLA>& local_matrices,const SolverTraits& traits):
-     RasPipelined<PipeSequential,SeqLA>(dom,dec,local_matrices,traits)
+    PipeSequential(Domain dom, const Decomposition& dec,const LocalMatrices<AloneOnStride>& local_matrices,const SolverTraits& traits):
+     RasPipelined<PipeSequential,AloneOnStride>(dom,dec,local_matrices,traits)
       { };
 
 
@@ -610,8 +595,6 @@ class PipeSequential : public RasPipelined<PipeSequential,SeqLA>
         Eigen::VectorXd uk(domain.nln()*DataDD.sub_sizes()[0]*DataDD.sub_sizes()[1]*2);
 
         for(unsigned int k:sub_in_zone){
-            // Eigen::SparseLU<SpMat > lu;
-            // lu.compute(local_mat.getAk(k));
             auto temp = local_mat.getRk(k);
             uk = this->get_LU_k(k).solve(temp.first*x);
             z=z+(temp.second.transpose())*uk;
@@ -655,11 +638,11 @@ class PipeSequential : public RasPipelined<PipeSequential,SeqLA>
 };
 
 
-class PipeParallel_SplitTime : public RasPipelined<PipeParallel_SplitTime,ParLA>
+class PipeParallel_CooperationSplitTime : public RasPipelined<PipeParallel_CooperationSplitTime,CooperationOnStride>
 {
   public:
-    PipeParallel_SplitTime(Domain dom,const Decomposition& dec,const LocalMatrices<ParLA>& local_matrices, const SolverTraits& traits) : 
-    RasPipelined<PipeParallel_SplitTime,ParLA>(dom,dec,local_matrices,traits) 
+    PipeParallel_CooperationSplitTime(Domain dom,const Decomposition& dec,const LocalMatrices<CooperationOnStride>& local_matrices, const SolverTraits& traits) : 
+    RasPipelined<PipeParallel_CooperationSplitTime,CooperationOnStride>(dom,dec,local_matrices,traits) 
     { };
     
     SolverResults solve(const SpMat& A, const SpMat& b) override
@@ -713,10 +696,6 @@ class PipeParallel_SplitTime : public RasPipelined<PipeParallel_SplitTime,ParLA>
       unsigned int it_waited_ = this->traits_.it_waited(); 
       unsigned int solves_ = this->traits_.solves(); 
 
-    //   if(this->DataDD.nsub_x() % size != 0){
-    //       std::cerr<<"sub_x not proportional to number of processes chosen"<<std::endl;
-    //   }
-
       Eigen::VectorXd z = Eigen::VectorXd::Zero(this->domain.nln()*this->domain.nt()*this->domain.nx()*2);
 
       // --------- ZONE UPDATE -----------------------------------------------------
@@ -741,7 +720,7 @@ class PipeParallel_SplitTime : public RasPipelined<PipeParallel_SplitTime,ParLA>
               it_waited_++;
           }
       } 
-      // nsubt > = subt_sx+2 hypotesis   //INSERIRE QUESTO CHECK?
+      // nsubt > = subt_sx+2 hypotesis  
 
       //unsigned int dx=subt_sx_+zone_;
       // -------------------------------------------------------------------------
@@ -817,6 +796,8 @@ class PipeParallel_SplitTime : public RasPipelined<PipeParallel_SplitTime,ParLA>
           }
       }
       // Each rank checks the subdomains assigned and then intersect the results with Allreduce
+      // the other ones send only one integer (1) that does not change the result
+      
       int base{1};
 
       if(rank<this->DataDD.nsub_x())

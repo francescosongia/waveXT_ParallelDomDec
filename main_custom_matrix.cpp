@@ -31,13 +31,12 @@ int main(int argc, char* argv[]) {
     int m = datafile("parameters/decomposition/size_subt", 0); 
 
     std::string method= datafile("parameters/traits/method", "RAS");
-    std::string la= datafile("parameters/traits/linear_algebra", "SeqLA");
+    std::string la= datafile("parameters/traits/linear_algebra", "AloneOnStride");
     unsigned int max_it = datafile("parameters/traits/max_iter", 100);
     double tol = datafile("parameters/traits/tol", 1e-10);
     double tol_pipe_sx = datafile("parameters/traits/tol_pipe_sx", 1e-10);
     unsigned int it_wait = datafile("parameters/traits/it_wait_pipe", 3);
 
-    //std::string test_matrices=datafile("file_matrices/test", "test1");
     std::string filenameA = folder_root+"tests//"+test_name+"//A.txt";
     std::string filenameb = folder_root+"tests//"+test_name+"//b.txt";
     std::string filename_coord = folder_root+"tests//"+test_name+"//coord.txt";
@@ -50,40 +49,40 @@ int main(int argc, char* argv[]) {
     int rank{0},size{0};
     
     std::set<std::string> method_implemented = {"RAS", "PIPE" };
-    std::set<std::string> la_policy_implemented = {"SeqLA", "ParLA" };
+    std::set<std::string> la_policy_implemented = {"AloneOnStride", "CooperationOnStride" };
     if (method_implemented.find(method) == method_implemented.end()) 
         std::cerr<<"Method non available. Choose between RAS and PIPE"<<std::endl;
     if (la_policy_implemented.find(la) == la_policy_implemented.end()) 
-        std::cerr<<"Linear Algebra policy non available. Choose between SeqLA and ParLA"<<std::endl;
+        std::cerr<<"Sub Assignment policy non available. Choose between AloneOnStride and CooperationOnStride"<<std::endl;
 
 
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-    assert(!(la != "SeqLA")                            && "Custom matrix not possible with ParLA or SplitTime.");
+    assert(!(la != "AloneOnStride")                            && "Custom matrix not possible with CooperationOnStride or CooperationSplitTime.");
     assert(!(size%2 !=0)                               && "Even number of cores required.");
-    assert(!(nsub_x == 1 && la =="ParLA")              && "ParLA not possibile with subx = 1.");
-    assert(!(nsub_x == 1 && la =="SeqLA")              && "Increase the number of subx, SeqLA requires size = nsubx with size >= 2. ");
-    assert(!(size == nsub_x && la =="ParLA")           && "With size = nsubx, SeqLA is needed. If you want to use ParLA decrease the number of subx.");
-    assert(!(la == "SeqLA" && size!=nsub_x && size>=2) && "SeqLA requires size = nsubx.");
-    assert(!(la == "ParLA" && size%nsub_x !=0)         && "ParLA requires size proportional to nsubx.");
+    assert(!(nsub_x == 1 && la =="CooperationOnStride")              && "CooperationOnStride not possibile with subx = 1.");
+    assert(!(nsub_x == 1 && la =="AloneOnStride")              && "Increase the number of subx, AloneOnStride requires size = nsubx with size >= 2. ");
+    assert(!(size == nsub_x && la =="CooperationOnStride")           && "With size = nsubx, AloneOnStride is needed. If you want to use CooperationOnStride decrease the number of subx.");
+    assert(!(la == "AloneOnStride" && size!=nsub_x && size>=2) && "AloneOnStride requires size = nsubx.");
+    assert(!(la == "CooperationOnStride" && size%nsub_x !=0)         && "CooperationOnStride requires size proportional to nsubx.");
     assert(!(nsub_t == 1 || nsub_x == 1)               && "nsubx and nsubt must be >= 1.");
 
 
     // CUSTOM MATRIX
     Eigen::MatrixXi custom_matrix_sub_assignment(nsub_x, nsub_t);
+    // random
     if(custom_matrix_random > 0){
         std::mt19937 gen(1234);  
         std::uniform_int_distribution<> dis(0, size-1);
         
-        // Assegna valori casuali alla matrice
         for (int i = 0; i < custom_matrix_sub_assignment.rows(); ++i) {
             for (int j = 0; j < custom_matrix_sub_assignment.cols(); ++j) {
                 custom_matrix_sub_assignment(i, j) = dis(gen);
             }
         }
     }
+    //from file
     else{
-        //std::cerr<<"da implemantare versione in cui leggo matrice custom da file esterno"<<std::endl;
         std::ifstream file_custom_mat;
         file_custom_mat.open(folder_root+"tests//"+test_name+"//custom_matrix.txt");
         if (!file_custom_mat.is_open()) {
@@ -125,14 +124,14 @@ int main(int argc, char* argv[]) {
 
     SolverResults res_obj;
     
-    if (method == "RAS" && la == "SeqLA") {
-        LocalMatrices<SeqLA> local_mat(dom, DataDD, A, size, rank,custom_matrix_sub_assignment);
-        DomainDecSolverFactory<Parallel_SeqLA,SeqLA> solver(dom,DataDD,local_mat,traits);
+    if (method == "RAS" && la == "AloneOnStride") {
+        LocalMatrices<AloneOnStride> local_mat(dom, DataDD, A, size, rank,custom_matrix_sub_assignment);
+        DomainDecSolverFactory<Parallel_AloneOnStride,AloneOnStride> solver(dom,DataDD,local_mat,traits);
         res_obj=solver(method,A,b);
     }
-    else if (method == "PIPE" and la == "SeqLA") {
-        LocalMatrices<SeqLA> local_mat(dom, DataDD, A, size, rank,custom_matrix_sub_assignment);
-        DomainDecSolverFactory<PipeParallel_SeqLA,SeqLA> solver(dom,DataDD,local_mat,traits);
+    else if (method == "PIPE" and la == "AloneOnStride") {
+        LocalMatrices<AloneOnStride> local_mat(dom, DataDD, A, size, rank,custom_matrix_sub_assignment);
+        DomainDecSolverFactory<PipeParallel_AloneOnStride,AloneOnStride> solver(dom,DataDD,local_mat,traits);
         res_obj=solver(method,A,b);
     }
     else{

@@ -13,8 +13,114 @@ typedef Eigen::SparseMatrix<double>
         SpMat; // declares a column-major sparse matrix type of double
 typedef Eigen::Triplet<double> T;
 
+/*
+THIS CLASS STORES ALL THE LOCAL MATRICES OF THE SUBDOMAINS. 
+Both the restriction and prolungation matrices and the local problem matrix.
+
+With the template parameter it is described the way of assign subdomains to different cores
+through the SubAssignment class. 
+
+In this class the local matrices are also computed assuming a cartesian space-time mesh
+*/
+
+
 template<class LA>
 class LocalMatrices {
+
+public:
+
+  LocalMatrices(Domain dom,const Decomposition&  dec,const SpMat& A, int np, int current_rank=0) :
+    domain(dom),DataDD(std::move(dec)),R_(DataDD.nsub()),R_tilde_(DataDD.nsub()), localA_(DataDD.nsub()),localA_created_(0),
+    current_rank_(current_rank), sub_assignment_(LA(np,DataDD.nsub_x(),DataDD.nsub_t()))
+  {   
+           
+      this->sub_assignment_.createSubDivision();
+      this->createRMatrices();
+      this->createAlocal(A);
+      if(current_rank==0)
+        std::cout<<"STEP 2/3: Local matrices created"<<std::endl; 
+
+  }; 
+
+
+  // constructor for custom matrix in sub assignment
+  LocalMatrices(Domain dom,const Decomposition&  dec,const SpMat& A, int np, int current_rank, Eigen::MatrixXi custom_mat) :
+    domain(dom),DataDD(std::move(dec)),R_(DataDD.nsub()),R_tilde_(DataDD.nsub()), localA_(DataDD.nsub()),localA_created_(0),
+    current_rank_(current_rank),sub_assignment_(LA(np,DataDD.nsub_x(),DataDD.nsub_t(),custom_mat))
+  {   
+     
+      this->sub_assignment_.createSubDivision();
+      this->createRMatrices();
+      this->createAlocal(A);
+      if(current_rank==0)
+        std::cout<<"STEP 2/3: Local matrices created"<<std::endl; 
+
+  };  
+
+  void createRMatrices()
+  {
+    auto sub_division_vec = this->sub_assignment_.sub_division_vec()[this->current_rank_];
+    auto size_assigned = sub_division_vec.size();
+
+    // parallel framework
+    if(size_assigned < this->DataDD.nsub() && this->sub_assignment_.custom_matrix()==false){     
+        
+        this->R_.resize(size_assigned);
+        this->R_tilde_.resize(size_assigned);
+        this->localA_.resize(size_assigned);
+        unsigned int k_local{0};
+        for(unsigned int k : sub_division_vec){
+
+            std::pair<SpMat, SpMat> res= this->createRK(k);
+            k_local++;
+            this->R_[k_local-1] = std::move(res.first);
+            this->R_tilde_[k_local-1] = std::move(res.second);
+            
+            }  
+    }
+    //sequential framework
+    else{
+        for(unsigned int k : sub_division_vec){
+            std::pair<SpMat, SpMat> res= this->createRK(k);
+            this->R_[k-1]= std::move(res.first);
+            this->R_tilde_[k-1] = std::move(res.second);
+            }
+    }
+  }; 
+
+
+  std::pair<SpMat, SpMat> getRk(unsigned int k) const
+  {
+    auto iscustom = this->sub_assignment_.custom_matrix();
+    auto local_k = (!iscustom)? this->sub_assignment_.idxSub_to_LocalNumbering(k, this->current_rank_):k;
+    return std::make_pair(this->R_[local_k-1], this->R_tilde_[local_k-1]);
+  };
+
+
+
+  SpMat getAk(unsigned int k) const
+  {
+    if (k>this->DataDD.nsub()){
+        std::cerr<<"k not valid"<<std::endl;
+        return {1,1};
+    }
+    if (this->localA_created_==0) {
+        std::cerr << "local A not created" << std::endl;
+        return {1, 1};
+    }
+    else{
+        auto iscustom = this->sub_assignment_.custom_matrix();
+        auto local_k = (!iscustom)? this->sub_assignment_.idxSub_to_LocalNumbering(k, this->current_rank_):k;
+        return this->localA_[local_k-1];
+    }
+  };
+
+  // getters
+  auto localA_created() const {return localA_created_;};
+  auto rank() const {return current_rank_;};
+  auto sub_assignment() const {return sub_assignment_;};
+  auto get_size_vector_localmat() const {return R_.size();};
+
 
 private:
   Domain domain;
@@ -100,105 +206,7 @@ private:
     this->localA_created_=1;
   };  
 
-  
- 
-
-public:
-
-  LocalMatrices(Domain dom,const Decomposition&  dec,const SpMat& A, int np, int current_rank=0) :
-    domain(dom),DataDD(std::move(dec)),R_(DataDD.nsub()),R_tilde_(DataDD.nsub()), localA_(DataDD.nsub()),localA_created_(0),
-    current_rank_(current_rank), sub_assignment_(LA(np,DataDD.nsub_x(),DataDD.nsub_t()))
-  {   
-           
-      this->sub_assignment_.createSubDivision();
-      this->createRMatrices();
-      this->createAlocal(A);
-      if(current_rank==0)
-        std::cout<<"STEP 2/3: Local matrices created"<<std::endl; 
-
-  }; 
-
-
-  // constructor for custom matrix in sub assignment
-  LocalMatrices(Domain dom,const Decomposition&  dec,const SpMat& A, int np, int current_rank, Eigen::MatrixXi custom_mat) :
-    domain(dom),DataDD(std::move(dec)),R_(DataDD.nsub()),R_tilde_(DataDD.nsub()), localA_(DataDD.nsub()),localA_created_(0),
-    current_rank_(current_rank),sub_assignment_(LA(np,DataDD.nsub_x(),DataDD.nsub_t(),custom_mat))
-  {   
-     
-      this->sub_assignment_.createSubDivision();
-      this->createRMatrices();
-      this->createAlocal(A);
-      if(current_rank==0)
-        std::cout<<"STEP 2/3: Local matrices created"<<std::endl; 
-
-  };  //avoid copies with move, da capire!
-
-
-  void createRMatrices()
-  {
-    auto sub_division_vec = this->sub_assignment_.sub_division_vec()[this->current_rank_];
-    auto size_assigned = sub_division_vec.size();
-
-    // parallel framework
-    if(size_assigned < this->DataDD.nsub() && this->sub_assignment_.custom_matrix()==false){     
-        
-        this->R_.resize(size_assigned);
-        this->R_tilde_.resize(size_assigned);
-        this->localA_.resize(size_assigned);
-        unsigned int k_local{0};
-        for(unsigned int k : sub_division_vec){
-
-            std::pair<SpMat, SpMat> res= this->createRK(k);
-            k_local++;
-            this->R_[k_local-1] = std::move(res.first);
-            this->R_tilde_[k_local-1] = std::move(res.second);
-            
-            }  
-    }
-    //sequential framework
-    else{
-        for(unsigned int k : sub_division_vec){
-            std::pair<SpMat, SpMat> res= this->createRK(k);
-            this->R_[k-1]= std::move(res.first);
-            this->R_tilde_[k-1] = std::move(res.second);
-            }
-    }
-  }; 
-
-
-  std::pair<SpMat, SpMat> getRk(unsigned int k) const
-  {
-    auto iscustom = this->sub_assignment_.custom_matrix();
-    auto local_k = (!iscustom)? this->sub_assignment_.idxSub_to_LocalNumbering(k, this->current_rank_):k;
-    return std::make_pair(this->R_[local_k-1], this->R_tilde_[local_k-1]);
-  };
-
-
-
-  SpMat getAk(unsigned int k) const
-  {
-    if (k>this->DataDD.nsub()){
-        std::cerr<<"k not valid"<<std::endl;
-        return {1,1};
-    }
-    if (this->localA_created_==0) {
-        std::cerr << "local A not created" << std::endl;
-        return {1, 1};
-    }
-    else{
-        auto iscustom = this->sub_assignment_.custom_matrix();
-        auto local_k = (!iscustom)? this->sub_assignment_.idxSub_to_LocalNumbering(k, this->current_rank_):k;
-        return this->localA_[local_k-1];
-    }
-  };
-
-  // getters
-  auto localA_created() const {return localA_created_;};
-  auto rank() const {return current_rank_;};
-  auto sub_assignment() const {return sub_assignment_;};
-  auto get_size_vector_localmat() const {return R_.size();};
-
-
 };
+
 
 #endif

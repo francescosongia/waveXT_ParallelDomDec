@@ -4,24 +4,10 @@ eigen in make:
 EIGEN_PATH = $(mkEigenInc)
 -I$(EIGEN_PATH)
 
-MPI comm per creare nuovi comunicatori (evitiamo somma zeri e gatherv+sendrecv)
-
 motivare vecotr al posto di array (piu portabile), modulo execution
 
 commentare tutto 
 aggiornare drawio
 
-SA
-OneCoreOneStride
-WithHelperCore
-SplitTime
 
 
-AloneOnStride               seq, ras&pipe seqla ma con parallelizz somma           
-CooperationOnStride         parallel la (master e helper), pipesplitime
-CooperationSplitTime        ras splitime
-
-ras:
-Parallel_SplitTime : public Ras<Parallel_SplitTime,SplitTime>
-pipe:
-PipeParallel_SplitTime : public RasPipelined<PipeParallel_SplitTime,CooperationOnStride>
