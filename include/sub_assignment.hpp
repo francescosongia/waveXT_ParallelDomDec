@@ -56,7 +56,14 @@ public:
   auto custom_matrix() const { return custom_matrix_; };
 
   virtual void createSubDivision() = 0;
-  virtual unsigned int idxSub_to_LocalNumbering(unsigned int k,int current_rank) const = 0; 
+
+  unsigned int idxSub_to_LocalNumbering(unsigned int k,int current_rank) const  //con le policy attuali tutte possono usare questa stessa funzione
+                                                                                // con policy future considerare di fare overlaod
+  {
+    auto sub_division_vec = this->sub_division_vec_[current_rank];
+    auto local_k = k-sub_division_vec(0)+1;
+    return local_k;
+  }; 
 
 };
 
@@ -74,16 +81,6 @@ class SeqLA : public SubAssignment<SeqLA>
     SeqLA(int nproc, unsigned int nsubx,unsigned int nsubt,const Eigen::MatrixXi& sub_division):
      SubAssignment<SeqLA>(nproc,nsubx,nsubt,sub_division)
      {};
-
-    unsigned int idxSub_to_LocalNumbering(unsigned int k,int current_rank) const override
-    { 
-      //auto local_k = (this->local_numbering) ? k-this->rank_group_la_*this->R_.size() : k;
-      //auto local_k = this->sub_assignment_.idxSub_to_LocalNumbering(k, this->current_rank_);
-      auto sub_division_vec = this->sub_division_vec_[current_rank];
-      auto local_k = k-sub_division_vec(0)+1;
-      return local_k;
-    }; 
-
 
     void createSubDivision() override
     { 
@@ -130,21 +127,6 @@ class ParLA : public SubAssignment<ParLA>
       std::cerr<<"custom sub assignment is not possible with ParLA"<<std::endl;
     };
 
-    unsigned int idxSub_to_LocalNumbering(unsigned int k, int current_rank) const override { 
-      /*
-      auto sub_division_vec = this->sub_division_vec_[current_rank];
-      auto size_assigned = sub_division_vec.size();
-
-      int rank_group_la{current_rank};
-      if(this->np_/this->nsub_x_ > 1)
-        rank_group_la= current_rank%(this->np_/this->nsub_x_ );
-      return k - rank_group_la*size_assigned;
-      */
-      auto sub_division_vec = this->sub_division_vec_[current_rank];
-      auto local_k = k-sub_division_vec(0)+1;
-      return local_k;
-    }; 
-
     void createSubDivision() override
     {
       // n.° process > nsubx. Assign to each time stride at least two processses. In thi way the linear 
@@ -183,16 +165,6 @@ class SplitTime : public SubAssignment<SplitTime>
     {
       std::cerr<<"custom sub assignment is not possible with SplitTime"<<std::endl;
     };
-
-    unsigned int idxSub_to_LocalNumbering(unsigned int k, int current_rank) const override { 
-      /*
-      auto sub_division_vec = this->sub_division_vec_[current_rank];
-      return k - sub_division_vec(0);//diff_time - i_group_la*(size_assigned);
-      */
-      auto sub_division_vec = this->sub_division_vec_[current_rank];
-      auto local_k = k-sub_division_vec(0)+1;
-      return local_k;
-    }; 
 
 
     void createSubDivision() override

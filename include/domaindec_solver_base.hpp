@@ -54,15 +54,16 @@ public:
   const Eigen::SparseLU<SpMat>& get_LU_k(unsigned int k) const
   {
     assert(k<=this->DataDD.nsub());
-    auto local_k= this->local_mat.sub_assignment().idxSub_to_LocalNumbering(k, this->local_mat.rank());
-    //k = (this->local_mat.local_num()) ? k-this->local_mat.rank_group_la()*this->local_mat.get_size_vector_localmat() : k;
+    auto iscustom = this->local_mat.sub_assignment().custom_matrix();
+    auto local_k = (!iscustom)? this->local_mat.sub_assignment().idxSub_to_LocalNumbering(k, this->local_mat.rank()):k;
+    
     return this->localLU[local_k-1];
   };
   
   virtual ~DomainDecSolverBase() = default;
 
 protected:
-  virtual Eigen::VectorXd precondAction(const SpMat& x) = 0;
+  //virtual Eigen::VectorXd precondAction(const SpMat& x) = 0;
   
   Domain domain;
   Decomposition DataDD;

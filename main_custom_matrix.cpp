@@ -59,7 +59,7 @@ int main(int argc, char* argv[]) {
 
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-    assert(!(la != "SeqLA")                            && "Custom matrix not possible with ParLA.");
+    assert(!(la != "SeqLA")                            && "Custom matrix not possible with ParLA or SplitTime.");
     assert(!(size%2 !=0)                               && "Even number of cores required.");
     assert(!(nsub_x == 1 && la =="ParLA")              && "ParLA not possibile with subx = 1.");
     assert(!(nsub_x == 1 && la =="SeqLA")              && "Increase the number of subx, SeqLA requires size = nsubx with size >= 2. ");

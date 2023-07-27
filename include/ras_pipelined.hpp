@@ -39,29 +39,29 @@ protected:
     Eigen::MatrixXi matrix_domain_;
 
 
-    Eigen::VectorXd precondAction(const SpMat& x) override
-    {   
-        // update the zone and then solve the local problems in the subdomains
-        P func_wrapper(this->domain,this->DataDD,this->local_mat,this->traits_);
-        auto res=func_wrapper.precondAction(x); 
+    // Eigen::VectorXd precondAction(const SpMat& x) override
+    // {   
+    //     // update the zone and then solve the local problems in the subdomains
+    //     P func_wrapper(this->domain,this->DataDD,this->local_mat,this->traits_);
+    //     auto res=func_wrapper.precondAction(x); 
         
-        // update parameters for zone evolution 
-        this->traits_.setZone(func_wrapper.traits().zone());
-        this->traits_.setSubtSx(func_wrapper.traits().subt_sx());
-        this->traits_.setItWaited(func_wrapper.traits().it_waited());
-        this->traits_.setSolves(func_wrapper.traits().solves());
+    //     // update parameters for zone evolution 
+    //     this->traits_.setZone(func_wrapper.traits().zone());
+    //     this->traits_.setSubtSx(func_wrapper.traits().subt_sx());
+    //     this->traits_.setItWaited(func_wrapper.traits().it_waited());
+    //     this->traits_.setSolves(func_wrapper.traits().solves());
 
-        return res;
-    };
+    //     return res;
+    // };
 
 
-    unsigned int check_sx(const Eigen::VectorXd& v)
-    {
-        // check if the left side of the zone has reached convergence
-        // and it returns the left element of the zone (of the first time stride)
-        P func_wrapper(this->domain,this->DataDD,this->local_mat,this->traits_);
-        return func_wrapper.check_sx(v); 
-    };
+    // unsigned int check_sx(const Eigen::VectorXd& v)
+    // {
+    //     // check if the left side of the zone has reached convergence
+    //     // and it returns the left element of the zone (of the first time stride)
+    //     P func_wrapper(this->domain,this->DataDD,this->local_mat,this->traits_);
+    //     return func_wrapper.check_sx(v); 
+    // };
 
 };
 
@@ -650,6 +650,184 @@ class PipeSequential : public RasPipelined<PipeSequential,SeqLA>
             sx1++;
         return sx1;
     }
+
+
+};
+
+
+class PipeParallel_SplitTime : public RasPipelined<PipeParallel_SplitTime,ParLA>
+{
+  public:
+    PipeParallel_SplitTime(Domain dom,const Decomposition& dec,const LocalMatrices<ParLA>& local_matrices, const SolverTraits& traits) : 
+    RasPipelined<PipeParallel_SplitTime,ParLA>(dom,dec,local_matrices,traits) 
+    { };
+    
+    SolverResults solve(const SpMat& A, const SpMat& b) override
+    {   
+        int rank{0};
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        auto start = std::chrono::steady_clock::now();
+        double tol=this->traits_.tol();
+        unsigned int max_it=this->traits_.max_it();
+        double res=tol+1;
+        std::vector<double> resinf_vec;   
+        unsigned int niter=0;
+
+        Eigen::VectorXd uw=Eigen::VectorXd::Zero(this->domain.nln()*this->domain.nt()*this->domain.nx()*2);
+        Eigen::VectorXd v(this->domain.nln()*this->domain.nt()*this->domain.nx()*2);
+
+        while(res>tol and niter<max_it){
+            v=b-A*uw;
+            res=v.lpNorm<Eigen::Infinity>();
+            uw=uw+precondAction(b-A*uw);
+            resinf_vec.push_back(res);
+            niter++;
+        }
+        unsigned int solves = this->traits_.solves();
+        MPI_Allreduce(MPI_IN_PLACE, &solves, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
+
+        auto end = std::chrono::steady_clock::now();
+        double time=std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+        if(rank==0){
+            std::cout<<"niter: "<<niter<<std::endl;
+            std::cout<<"solves: "<<solves<<std::endl;
+            std::cout <<"time in milliseconds: "<< time<<std::endl;
+        }
+
+        SolverResults res_obj(uw,solves,time, this->traits_, this->DataDD);
+
+        return res_obj;
+    };
+
+
+    Eigen::VectorXd precondAction(const SpMat& x)
+    {
+      int rank{0},size{0};
+      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+      MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+      // collect the parameters for the zone evolution
+      unsigned int zone_ = this->traits_.zone(); 
+      unsigned int subt_sx_ = this->traits_.subt_sx(); 
+      unsigned int it_waited_ = this->traits_.it_waited(); 
+      unsigned int solves_ = this->traits_.solves(); 
+
+    //   if(this->DataDD.nsub_x() % size != 0){
+    //       std::cerr<<"sub_x not proportional to number of processes chosen"<<std::endl;
+    //   }
+
+      Eigen::VectorXd z = Eigen::VectorXd::Zero(this->domain.nln()*this->domain.nt()*this->domain.nx()*2);
+
+      // --------- ZONE UPDATE -----------------------------------------------------
+      unsigned int it_wait = this->traits_.it_wait();
+      unsigned int sx1= check_sx(x);
+      unsigned int f=0;
+      if (sx1 >subt_sx_ and sx1<=this->DataDD.nsub_t()){
+          subt_sx_=sx1;
+          zone_--;
+          f=1;
+      }
+      unsigned int isend = (zone_+subt_sx_ == this->DataDD.nsub_t()+1) ? 1 : 0;
+      if (isend==0 and zone_==0)
+          zone_++;
+      //update dx
+      if(isend==0){
+          if(it_waited_>=it_wait or (f==1 and it_waited_<it_wait)){
+              zone_ = zone_ +1 ;
+              it_waited_=0;
+          }
+          else if(f==0 and it_waited_<it_wait){
+              it_waited_++;
+          }
+      } 
+      // nsubt > = subt_sx+2 hypotesis   //INSERIRE QUESTO CHECK?
+
+      //unsigned int dx=subt_sx_+zone_;
+      // -------------------------------------------------------------------------
+
+      int cores_on_stride = size / this->DataDD.nsub_x();
+      std::vector<int> dims_on_stride(cores_on_stride);
+      std::vector<int> cum_start(cores_on_stride+1,0);
+      for(int i=0;i<cores_on_stride;++i){
+        dims_on_stride[i] = zone_/cores_on_stride + (i < (zone_ % cores_on_stride));
+        cum_start[i+1] = cum_start[i] + dims_on_stride[i] ;
+
+      }
+      int local_rank_on_stride = rank/this->DataDD.nsub_x();
+      int size_assigned_on_rank = dims_on_stride[local_rank_on_stride];
+
+      auto zonematrix=matrix_domain_(Eigen::seq(subt_sx_-1 + cum_start[local_rank_on_stride],
+                                            subt_sx_-2 + cum_start[local_rank_on_stride]+ size_assigned_on_rank),
+                                    Eigen::seq(rank%this->DataDD.nsub_x(),rank%this->DataDD.nsub_x()));
+
+
+      Eigen::VectorXi sub_in_zone=zonematrix.reshaped();
+      solves_+=sub_in_zone.size();
+
+      Eigen::VectorXd uk(this->domain.nln()*this->DataDD.sub_sizes()[0]*this->DataDD.sub_sizes()[1]*2);
+
+      for(unsigned int k:sub_in_zone){
+          auto temp = this->local_mat.getRk(k);
+          uk = this->get_LU_k(k).solve(temp.first*x);
+          z=z+(temp.second.transpose())*uk;
+      }
+      // Each rank compute the solution over the subdomains assigned and then collect and sum all the results with Allreduce
+      MPI_Allreduce(MPI_IN_PLACE, z.data(), this->domain.nln()*this->domain.nt()*this->domain.nx()*2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);   
+      
+      // update the zone evolution parameters
+      this->traits_.setZone(zone_);
+      this->traits_.setSolves(solves_);
+      this->traits_.setItWaited(it_waited_);
+      this->traits_.setSubtSx(subt_sx_);
+
+      return z;
+
+    };
+
+
+    unsigned int check_sx(const Eigen::VectorXd& v)
+    {
+      // it returns the left element of the zone (of the first time stride)
+      int np = this->local_mat.sub_assignment().np();
+      
+      int rank = this->local_mat.rank();
+      unsigned int subt_sx_ = this->traits_.subt_sx(); 
+      double tol_sx = this->traits_.tol_pipe_sx(); 
+
+      unsigned int sx1 = subt_sx_;
+      if (subt_sx_>this->DataDD.nsub_t()){
+          std::cout<<subt_sx_<<std::endl;
+          std::cerr<<"err in the definiton of left edge of subdomain window"<<std::endl;
+          return 0;
+      }
+      int fail = 0;
+      Eigen::VectorXd res(this->domain.nln()*this->DataDD.sub_sizes()[0]*this->DataDD.sub_sizes()[1]*2);
+
+      int partition_ = np/this->DataDD.nsub_x() ;  
+      auto zonematrix=matrix_domain_(Eigen::seq(subt_sx_-1,subt_sx_-1),Eigen::seq(rank%partition_,rank%partition_));
+      Eigen::VectorXi subsx_in_zone=zonematrix.reshaped();  
+
+      for(unsigned int i: subsx_in_zone){
+          res=this->local_mat.getRk(i).first*v;
+          auto err= res.lpNorm<Eigen::Infinity>();
+          if(err > tol_sx){
+              fail = 1;
+              break;
+          }
+      }
+      // Each rank checks the subdomains assigned and then intersect the results with Allreduce
+      int base{1};
+
+      if(rank<this->DataDD.nsub_x())
+        MPI_Allreduce(MPI_IN_PLACE, &fail, 1, MPI_INT, MPI_PROD, MPI_COMM_WORLD);
+      else
+        MPI_Allreduce(&base, &fail, 1, MPI_INT, MPI_PROD, MPI_COMM_WORLD);
+      if(fail==0)
+          sx1++;
+    
+      return sx1;
+    };
 
 
 };

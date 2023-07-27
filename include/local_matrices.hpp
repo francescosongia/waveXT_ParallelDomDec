@@ -9,14 +9,9 @@
 #include <iostream>
 
 
-//typedef Eigen::SparseMatrix<double,Eigen::RowMajor>
 typedef Eigen::SparseMatrix<double>
         SpMat; // declares a column-major sparse matrix type of double
 typedef Eigen::Triplet<double> T;
-
-// ABBIAMO SEMPRE USATO COLUMN MAJOR MATRICES. NELLA PARALLELIZZAZIONE LA CI SERVE PERÒ
-// ACCEDERE CON MIDDLEROWS AD ALCUNE RIGHE. CAPIRE SE È PIU EFFICIENTE SALVARE LA MATRICI 
-// COME ROW-MAJOR. IN QUESTO CASO CONTROLLARE CHE NON CAMBI NIENTE NELLE ALTRE IMPLEMENTAZIONI
 
 template<class LA>
 class LocalMatrices {
@@ -29,8 +24,6 @@ private:
   std::vector<SpMat> localA_;
   int localA_created_;
   int current_rank_;
-  int rank_group_la_;
-  bool local_numbering;
   LA sub_assignment_;
   
 
@@ -96,13 +89,11 @@ private:
     n = this->DataDD.sub_sizes()[0];
     SpMat temp(nln*m*n*2,nln*nt*nx*2);
     auto sub_division_vec = this->sub_assignment_.sub_division_vec()[this->current_rank_];
+    auto iscustom = this->sub_assignment_.custom_matrix();
     for(unsigned int k : sub_division_vec){   
+        
+        auto local_k = (!iscustom)? this->sub_assignment_.idxSub_to_LocalNumbering(k, this->current_rank_):k;
 
-        //auto local_k = (this->local_numbering) ? k-this->rank_group_la_*this->R_.size() : k;
-        auto local_k = this->sub_assignment_.idxSub_to_LocalNumbering(k, this->current_rank_);
-
-        // auto sub_division_vec = this->sub_assignment_.sub_division_vec()[this->current_rank_];
-        // auto local_k = k-sub_division_vec(0)+1;
         temp=this->R_[local_k-1]*A;
         this->localA_[local_k-1]=temp*(this->R_[local_k-1].transpose());
     }
@@ -116,15 +107,10 @@ public:
 
   LocalMatrices(Domain dom,const Decomposition&  dec,const SpMat& A, int np, int current_rank=0) :
     domain(dom),DataDD(std::move(dec)),R_(DataDD.nsub()),R_tilde_(DataDD.nsub()), localA_(DataDD.nsub()),localA_created_(0),
-    current_rank_(current_rank),rank_group_la_(current_rank),local_numbering(false), 
-    sub_assignment_(LA(np,DataDD.nsub_x(),DataDD.nsub_t()))
+    current_rank_(current_rank), sub_assignment_(LA(np,DataDD.nsub_x(),DataDD.nsub_t()))
   {   
-      
-      if(np/DataDD.nsub_x() > 1)
-        this->rank_group_la_ = current_rank_%(np/DataDD.nsub_x());
-      
+           
       this->sub_assignment_.createSubDivision();
-      //std::cout<<"subdivi, rank "<<current_rank<<":"<< this->sub_assignment_.sub_division()<<std::endl;
       this->createRMatrices();
       this->createAlocal(A);
       if(current_rank==0)
@@ -136,13 +122,9 @@ public:
   // constructor for custom matrix in sub assignment
   LocalMatrices(Domain dom,const Decomposition&  dec,const SpMat& A, int np, int current_rank, Eigen::MatrixXi custom_mat) :
     domain(dom),DataDD(std::move(dec)),R_(DataDD.nsub()),R_tilde_(DataDD.nsub()), localA_(DataDD.nsub()),localA_created_(0),
-    current_rank_(current_rank),rank_group_la_(current_rank),local_numbering(false), 
-    sub_assignment_(LA(np,DataDD.nsub_x(),DataDD.nsub_t(),custom_mat))
+    current_rank_(current_rank),sub_assignment_(LA(np,DataDD.nsub_x(),DataDD.nsub_t(),custom_mat))
   {   
-      
-      if(np/DataDD.nsub_x() > 1)
-        this->rank_group_la_ = current_rank_%(np/DataDD.nsub_x());
-      
+     
       this->sub_assignment_.createSubDivision();
       this->createRMatrices();
       this->createAlocal(A);
@@ -159,14 +141,12 @@ public:
 
     // parallel framework
     if(size_assigned < this->DataDD.nsub() && this->sub_assignment_.custom_matrix()==false){     
-        this->local_numbering = true;
+        
         this->R_.resize(size_assigned);
         this->R_tilde_.resize(size_assigned);
         this->localA_.resize(size_assigned);
         unsigned int k_local{0};
         for(unsigned int k : sub_division_vec){
-            //auto k_local = k - this->rank_group_la_*size_assigned; 
-            //auto k_local = this->sub_assignment_.idxSub_to_LocalNumbering(k, this->current_rank_);
 
             std::pair<SpMat, SpMat> res= this->createRK(k);
             k_local++;
@@ -188,10 +168,8 @@ public:
 
   std::pair<SpMat, SpMat> getRk(unsigned int k) const
   {
-    //auto local_k = (this->local_numbering) ? k-this->rank_group_la_*this->R_.size() : k;
-    auto local_k = this->sub_assignment_.idxSub_to_LocalNumbering(k, this->current_rank_);
-    // auto sub_division_vec = this->sub_assignment_.sub_division_vec()[this->current_rank_];
-    // auto local_k = k-sub_division_vec(0)+1;
+    auto iscustom = this->sub_assignment_.custom_matrix();
+    auto local_k = (!iscustom)? this->sub_assignment_.idxSub_to_LocalNumbering(k, this->current_rank_):k;
     return std::make_pair(this->R_[local_k-1], this->R_tilde_[local_k-1]);
   };
 
@@ -208,10 +186,8 @@ public:
         return {1, 1};
     }
     else{
-        auto local_k= this->sub_assignment_.idxSub_to_LocalNumbering(k, this->current_rank_);
-        //auto local_k = (this->local_numbering) ? k-this->rank_group_la_*this->R_.size() : k;
-        // auto sub_division_vec = this->sub_assignment_.sub_division_vec()[this->current_rank_];
-        // auto local_k = k-sub_division_vec(0)+1;
+        auto iscustom = this->sub_assignment_.custom_matrix();
+        auto local_k = (!iscustom)? this->sub_assignment_.idxSub_to_LocalNumbering(k, this->current_rank_):k;
         return this->localA_[local_k-1];
     }
   };
@@ -221,8 +197,6 @@ public:
   auto rank() const {return current_rank_;};
   auto sub_assignment() const {return sub_assignment_;};
   auto get_size_vector_localmat() const {return R_.size();};
-  auto local_num() const {return local_numbering;};
-  auto rank_group_la() const {return rank_group_la_;};
 
 
 };

@@ -72,13 +72,14 @@ int main(int argc, char* argv[]) {
     if (la_policy_implemented.find(la) == la_policy_implemented.end()) 
         std::cerr<<"Linear Algebra policy non available. Choose between SeqLA, ParLA and SplitTime"<<std::endl;
     
-    assert(!(size%2 !=0)                               && "Even number of cores required.");
-    assert(!(nsub_x == 1 && la =="ParLA")              && "ParLA not possibile with subx = 1.");
-    assert(!(nsub_x == 1 && la =="SeqLA")              && "Increase the number of subx, SeqLA requires size = nsubx with size >= 2. ");
-    assert(!(size == nsub_x && la =="ParLA")           && "With size = nsubx, SeqLA is needed. If you want to use ParLA decrease the number of subx.");
-    assert(!(la == "SeqLA" && size!=nsub_x && size>=2) && "SeqLA requires size = nsubx.");
-    assert(!(la == "ParLA" && size%nsub_x !=0)         && "ParLA requires size proportional to nsubx.");
-    assert(!(nsub_t == 1 || nsub_x == 1)               && "nsubx and nsubt must be >= 1.");
+    assert(!(size%2 !=0)                                                && "Even number of cores required.");
+    assert(!(nsub_x == 1 && la =="ParLA")                               && "ParLA not possibile with subx = 1.");
+    assert(!(nsub_x == 1 && la =="SeqLA")                               && "Increase the number of subx, SeqLA requires size = nsubx with size >= 2. ");
+    assert(!(size == nsub_x && (la =="ParLA" || la == "SplitTime"))     && "With size = nsubx, SeqLA is needed. If you want to use ParLA or SplitTime decrease the number of subx or increase the size.");
+    assert(!(la == "SeqLA" && size!=nsub_x && size>=2)                  && "SeqLA requires size = nsubx.");
+    assert(!((la == "ParLA" || la =="SplitTime") && size%nsub_x !=0)    && "ParLA and SplitTime require size proportional to nsubx.");
+    assert(!(method == "RAS" && la == "SplitTime" && nsub_t%size !=0)   && "SplitTime with RAS requires number of time subs proportional to number of cores.");
+    assert(!(nsub_t == 1 || nsub_x == 1)                                && "nsubx and nsubt must be >= 1.");
     
     
     Domain dom(nx, nt, X, T, nln);
@@ -122,6 +123,11 @@ int main(int argc, char* argv[]) {
     else if (method == "RAS" and la == "SplitTime") {
         LocalMatrices<SplitTime> local_mat(dom, DataDD, A, size, rank);
         DomainDecSolverFactory<Parallel_SplitTime,SplitTime> solver(dom,DataDD,local_mat,traits);
+        res_obj=solver(method,A,b);
+    }
+    else if (method == "PIPE" and la == "SplitTime") {
+        LocalMatrices<ParLA> local_mat(dom, DataDD, A, size, rank);
+        DomainDecSolverFactory<PipeParallel_SplitTime,ParLA> solver(dom,DataDD,local_mat,traits);
         res_obj=solver(method,A,b);
     }
 

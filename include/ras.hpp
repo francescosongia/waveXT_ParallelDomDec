@@ -20,11 +20,11 @@ public:
 
 
 protected:
-  Eigen::VectorXd precondAction(const SpMat& x) override
-  {
-    P func_wrapper(this->domain,this->DataDD,this->local_mat,this->traits_);
-    return func_wrapper.precondAction(x);
-  };
+  // Eigen::VectorXd precondAction(const SpMat& x) override
+  // {
+  //   P func_wrapper(this->domain,this->DataDD,this->local_mat,this->traits_);
+  //   return func_wrapper.precondAction(x);
+  // };
 
 };
 
@@ -380,15 +380,7 @@ class Parallel_ParLA : public Ras<Parallel_ParLA,ParLA>
     };
 };
 
-/*
-class Parallel_SplitTime : public Parallel_SeqLA
-{
-  public:
-    Parallel_SplitTime(Domain dom, const Decomposition& dec,const LocalMatrices<SplitTime>& local_matrices,const SolverTraits& traits) :
-     Parallel_SeqLA(dom,dec,local_matrices,traits) {};
 
-};
-*/
 
 class Parallel_SplitTime : public Ras<Parallel_SplitTime,SplitTime>
 {
