@@ -760,7 +760,7 @@ class PipeParallel_CooperationSplitTime : public RasPipelined<PipeParallel_Coope
       // -------------------------------------------------------------------------
 
 
-      int cores_on_stride = size / this->DataDD.nsub_x(); // how many cores are assigned the one temporal stride
+      int cores_on_stride = size / this->DataDD.nsub_x(); // how many cores are assigned to the one temporal stride
       std::vector<int> dims_on_stride(cores_on_stride);
       std::vector<int> cum_start(cores_on_stride+1,0);
       for(int i=0;i<cores_on_stride;++i){
