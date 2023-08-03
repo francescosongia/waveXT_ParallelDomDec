@@ -14,3 +14,5 @@ Su webeep formaggia consiglia di mettere gli header in un ordine preciso dal pi√
 Stride = passo 
 Strip = striscia
 rinominare "Alone on stride" con "Alone on Strip"?
+
+in realt√† il metodo non converge anche se si abbassa la tolleranza e fa al massimo il numero di iterazioni
