@@ -16,3 +16,5 @@ Strip = striscia
 rinominare "Alone on stride" con "Alone on Strip"?
 
 in realtà il metodo non converge anche se si abbassa la tolleranza e fa al massimo il numero di iterazioni
+
+classe decomposition h 3 costruttori i primi due possono essere unificati in questo 
