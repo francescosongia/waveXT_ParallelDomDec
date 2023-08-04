@@ -17,4 +17,13 @@ rinominare "Alone on stride" con "Alone on Strip"?
 
 in realtà il metodo non converge anche se si abbassa la tolleranza e fa al massimo il numero di iterazioni
 
-classe decomposition h 3 costruttori i primi due possono essere unificati in questo 
+classe decomposition ha 3 costruttor,i i primi duedifferiscono solo per il setting di theta,
+possono essere unificati in questo unico costruttore
+
+  Decomposition(Domain& dom, unsigned int nsub_x, unsigned int nsub_t,
+                double theta = 0.5)
+      : domain(dom), nsub_x_(nsub_x), nsub_t_(nsub_t), theta_(theta),
+        sub_sizes_(dom.d()+1), overlap_back_(dom.d()+1, nsub_t * nsub_x),
+        overlap_forw_(dom.d()+1, nsub_t * nsub_x),
+        start_elem_(nsub_t * nsub_x){this->createDec(-1,-1);};
+
