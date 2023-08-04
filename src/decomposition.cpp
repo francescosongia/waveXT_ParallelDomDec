@@ -5,7 +5,8 @@
 #include <cassert>
 
 
-void Decomposition::createDec(double n = -1, double m = -1) {
+void Decomposition::createDec(double n = -1, double m = -1) 
+{
   unsigned int nx = domain.nx();
   unsigned int nt = domain.nt();
   
@@ -13,7 +14,8 @@ void Decomposition::createDec(double n = -1, double m = -1) {
         && "Subdomains composed by only overlap are not allowed, reduce the sub sizes or use the default ones (0).");
 
   // sub sizes are not setted by user or if they not covers the domains
-  if (n * nsub_x_ <= nx || m * nsub_t_ <= nt || n<=0 || m<=0) { 
+  if (n * nsub_x_ <= nx || m * nsub_t_ <= nt || n<=0 || m<=0)
+  { 
     //std::cout<<"Subdomains sizes automatically defined"<<std::endl;
     double molt = 1.2;
     n = floor(nx * molt / nsub_x_);
@@ -60,11 +62,13 @@ void Decomposition::createDec(double n = -1, double m = -1) {
   to_rep1.insert(to_rep1.end(), b.begin(), b.end());
   std::vector<unsigned int> ot_forw;
   std::vector<unsigned int> ot_back;
-  for (unsigned int i = 0; i < nsub_x_; ++i) {
+  for (unsigned int i = 0; i < nsub_x_; ++i)
+  {
     ot_forw.insert(ot_forw.end(), to_rep.begin(), to_rep.end());
     ot_back.insert(ot_back.end(), to_rep1.begin(), to_rep1.end());
   }
-  for (size_t i = 0; i < ot_forw.size(); ++i) {
+  for (size_t i = 0; i < ot_forw.size(); ++i) 
+  {
     overlap_back_(1, i) = ot_back[i];
     overlap_forw_(1, i) = ot_forw[i];
   }
@@ -75,25 +79,26 @@ void Decomposition::createDec(double n = -1, double m = -1) {
   Eigen::MatrixXi ox_forw_mat;
   ox_forw_mat = overlap_forw_.row(0).reshaped(nsub_t_, nsub_x_).transpose();
   Eigen::MatrixXi start_elem_eig = Eigen::MatrixXi::Constant(nsub_x_, nsub_t_, 0);
-  for (Eigen::Index i = 0; i < nsub_x_; ++i) {
-      if (i==0){
-          start_elem_eig(i, 0)=1;
-      }
-      else {
+  for (Eigen::Index i = 0; i < nsub_x_; ++i) 
+  {
+      if (i==0)
+          start_elem_eig(i, 0)=1; 
+      else 
+      {
           Eigen::Index k=nsub_t_-1;
           start_elem_eig(i, 0) = start_elem_eig(i - 1, 0) +(n-ox_forw_mat(i-1, k)) * domain.nt();
       }
 
-      for (Eigen::Index j = 1; j < nsub_t_; ++j) {
+      for (Eigen::Index j = 1; j < nsub_t_; ++j) 
+      {
           start_elem_eig(i, j) =
-              start_elem_eig(i, j-1 ) + m - ot_forw_mat(i, j - 1);
+          start_elem_eig(i, j-1 ) + m - ot_forw_mat(i, j - 1);
       }
   }
 
   auto temp= start_elem_eig.transpose().reshaped();
-  for (size_t i = 0; i < nsub_t_ * nsub_x_; ++i) {
+  for (size_t i = 0; i < nsub_t_ * nsub_x_; ++i)
     start_elem_[i] = temp(i, 0);
-  }
 }
 
 std::tuple<unsigned int, unsigned int, unsigned int,unsigned int,unsigned int> Decomposition::get_info_subK(unsigned int k) const{
