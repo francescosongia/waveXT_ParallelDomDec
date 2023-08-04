@@ -29,7 +29,8 @@ void Decomposition::createDec(double n = -1, double m = -1)
   // average ot,ox, rest
   double ot_mean , ox_mean;
   int ot_rest, ox_rest;
-  double val=m - (nt - m) / (nsub_t_ - 1);
+  double val;
+  val = m - (nt - m) / (nsub_t_ - 1);
   ot_mean = (val>=0)? floor(val) : ceil(val);
   ot_rest = (m - ot_mean) * (nsub_t_ - 1) - (nt - m);
   val=n - (nx - n)/ (nsub_x_ - 1);
