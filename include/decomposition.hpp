@@ -10,14 +10,8 @@ class Decomposition {
 public:
 
   Decomposition(Domain& dom, unsigned int nsub_x, unsigned int nsub_t,
-                double theta)
+                double theta=0.5)
       : domain(dom), nsub_x_(nsub_x), nsub_t_(nsub_t), theta_(theta),
-        sub_sizes_(dom.d()+1), overlap_back_(dom.d()+1, nsub_t * nsub_x),
-        overlap_forw_(dom.d()+1, nsub_t * nsub_x),
-        start_elem_(nsub_t * nsub_x){this->createDec(-1,-1);};
-
-  Decomposition(Domain& dom, unsigned int nsub_x, unsigned int nsub_t)
-      : domain(dom), nsub_x_(nsub_x), nsub_t_(nsub_t), theta_(0.5),
         sub_sizes_(dom.d()+1), overlap_back_(dom.d()+1, nsub_t * nsub_x),
         overlap_forw_(dom.d()+1, nsub_t * nsub_x),
         start_elem_(nsub_t * nsub_x){this->createDec(-1,-1);};
