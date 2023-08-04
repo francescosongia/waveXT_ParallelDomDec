@@ -9,13 +9,13 @@ class SubAssignment {
 
 public:
   SubAssignment(int nproc, unsigned int nsubx,unsigned int nsubt)
-      : np_(nproc), nsub_x_(nsubx), nsub_t_(nsubt), sub_division_(nproc,nsubt), sub_division_vec_(nproc),custom_matrix_(false)
+      : np_(nproc), nsub_x_(nsubx), nsub_t_(nsubt), sub_division_vec_(nproc),custom_matrix_(false)
       {};  
 
   
   //custom matrix to assign subdomains
   SubAssignment(int nproc, unsigned int nsubx,unsigned int nsubt, const Eigen::MatrixXi& sub_division)
-      : np_(nproc), nsub_x_(nsubx), nsub_t_(nsubt), sub_division_(sub_division), sub_division_vec_(nproc),custom_matrix_(true)
+      : np_(nproc), nsub_x_(nsubx), nsub_t_(nsubt), sub_division_vec_(nproc),custom_matrix_(true)
       {
         std::vector<std::vector<int>> temp(nproc);
         int current_proc{0};
@@ -44,7 +44,6 @@ protected:
   int nsub_t_;
 
   // structures that contain the subdomains numbers assigned to each of the processes
-  Eigen::MatrixXi sub_division_;
   std::vector<Eigen::VectorXi> sub_division_vec_;
 
   // flag to underline if a custom matrix for subs assighment is provided
@@ -55,7 +54,6 @@ public:
   auto np() const { return np_; };
   auto nsub_x() const { return nsub_x_; };
   auto nsub_t() const { return nsub_t_; };
-  auto sub_division() const { return sub_division_; };
   auto sub_division_vec() const { return sub_division_vec_; };
   auto custom_matrix() const { return custom_matrix_; };
 
@@ -103,9 +101,7 @@ class AloneOnStride : public SubAssignment<AloneOnStride>
   public:
     AloneOnStride(int nproc, unsigned int nsubx,unsigned int nsubt):
      SubAssignment<AloneOnStride>(nproc,nsubx,nsubt)
-     {
-        this->sub_division_.resize(nproc,(nsubx/nproc)*nsubt);
-     };
+     {};
 
     AloneOnStride(int nproc, unsigned int nsubx,unsigned int nsubt,const Eigen::MatrixXi& sub_division):
      SubAssignment<AloneOnStride>(nproc,nsubx,nsubt,sub_division)
@@ -124,13 +120,11 @@ class AloneOnStride : public SubAssignment<AloneOnStride>
           {
             auto temp = Eigen::VectorXi::LinSpaced(this->nsub_t_*partition, this->nsub_t_*partition*i + 1, this->nsub_t_*partition*(i+1)) ;
             this->sub_division_vec_[i] = temp;
-            this->sub_division_(i,Eigen::seq(0,this->nsub_t_*partition-1)) = temp;
           }
         }
         // SEQUENTIAL (all subs assigned to the same process)
         else if(this->np_ == 1)
         {
-          this->sub_division_.setZero();
           auto temp = Eigen::VectorXi::LinSpaced(this->nsub_t_*this->nsub_x_, 1, this->nsub_t_*this->nsub_x_) ;
           this->sub_division_vec_[0]=temp;          
         }
@@ -167,11 +161,11 @@ class CooperationOnStride : public SubAssignment<CooperationOnStride>
       int i_group_la{0};
 
       if (this->np_% this->nsub_x_ == 0){  
-        for(int i=0; i< this->np_; ++i){
+        for(int i=0; i< this->np_; ++i)
+        {
           i_group_la = i % partition;
           auto temp = Eigen::VectorXi::LinSpaced(this->nsub_t_, this->nsub_t_*i_group_la + 1, this->nsub_t_*(i_group_la+1)) ;
           this->sub_division_vec_[i] = temp;
-          this->sub_division_(i,Eigen::seq(0,this->nsub_t_-1)) = temp;
         }
       }
       else{
@@ -190,9 +184,7 @@ class CooperationSplitTime : public SubAssignment<CooperationSplitTime>
 {
   public:
     CooperationSplitTime(int nproc, unsigned int nsubx,unsigned int nsubt): SubAssignment<CooperationSplitTime>(nproc,nsubx,nsubt) 
-    {
-      sub_division_.resize(nproc, nsubx*nsubt/nproc);
-    };
+    {};
     
     CooperationSplitTime(int nproc, unsigned int nsubx,unsigned int nsubt,const Eigen::MatrixXi& sub_division): 
       SubAssignment<CooperationSplitTime>(nproc,nsubx,nsubt,sub_division) 
@@ -215,11 +207,11 @@ class CooperationSplitTime : public SubAssignment<CooperationSplitTime>
       auto vec_cores = matrix_cores.transpose().reshaped();
       if ( (this->nsub_x_*this->nsub_t_)%this->np_ == 0){  
 
-        for(int i=0; i< this->np_; ++i){
+        for(int i=0; i< this->np_; ++i)
+        {
           auto local_i =vec_cores(i);
           auto temp = Eigen::VectorXi::LinSpaced(time_partition, time_partition*i+1, time_partition*(i+1)+1 ) ;
           this->sub_division_vec_[local_i] = temp;
-          this->sub_division_(local_i,Eigen::seq(0,time_partition-1)) = temp;
         }
       }
       else{
