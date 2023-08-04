@@ -103,7 +103,8 @@ void Decomposition::createDec(double n = -1, double m = -1)
 
 std::tuple<unsigned int, unsigned int, unsigned int,unsigned int,unsigned int> Decomposition::get_info_subK(unsigned int k) const{
     //startelem, ox ot forw,back
-    if (k>this->nsub()){
+    if (k>this->nsub())
+    {
         std::cerr<<"k is not a valid subdomain number"<<std::endl;
         return std::make_tuple(0,0,0,0,0);
     }
@@ -111,7 +112,8 @@ std::tuple<unsigned int, unsigned int, unsigned int,unsigned int,unsigned int> D
     return std::make_tuple(start_elem_[k], overlap_forw_(0,k), overlap_forw_(1,k),overlap_back_(0,k),overlap_back_(1,k));
 }
 
-std::vector<int> Decomposition::basic_info_decomposition() const{
+std::vector<int> Decomposition::basic_info_decomposition() const
+{
   std::vector<int> res(6);
   res[0] = nsub_x_;
   res[1] = nsub_t_;
