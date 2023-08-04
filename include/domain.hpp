@@ -22,6 +22,7 @@ private:
   // space size
   unsigned int d_;
 
+// simple getters
 public:
   auto nx() const { return nx_; };
   auto nt() const { return nt_; };
