@@ -19,15 +19,18 @@ public:
       {
         std::vector<std::vector<int>> temp(nproc);
         int current_proc{0};
-        for(Eigen::Index i = 0; i < nsub_x_; ++i){
-          for(Eigen::Index j = 0; j < nsub_t_; ++j){
+        for(Eigen::Index i = 0; i < nsub_x_; ++i)
+        {
+          for(Eigen::Index j = 0; j < nsub_t_; ++j)
+          {
             current_proc = sub_division(i,j);
             if(current_proc>=nproc)
               std::cerr<<"element of custom matrix greater than size-1"<<std::endl;
             temp[current_proc].push_back(i*nsubt+(j+1));
           }
         }
-        for(int i=0;i<nproc;++i){
+        for(int i=0;i<nproc;++i)
+        {
           Eigen::VectorXi eigenVector = Eigen::Map<Eigen::VectorXi>(temp[i].data(), temp[i].size());
           sub_division_vec_[i] = eigenVector;
         }
@@ -113,17 +116,20 @@ class AloneOnStride : public SubAssignment<AloneOnStride>
       if(this->custom_matrix_ == false){
         // PARALLEL (assign subs to different cores when computing the sum in precondAction)
         // assign each time stride to a single process.
-        if (this->np_ > 1 && this->nsub_x_% this->np_ ==0 ){  
+        if (this->np_ > 1 && this->nsub_x_% this->np_ ==0 )
+        {  
           int partition{0};
           partition = this->nsub_x_/ this->np_;
-          for(int i=0; i< this->np_; ++i){
+          for(int i=0; i< this->np_; ++i)
+          {
             auto temp = Eigen::VectorXi::LinSpaced(this->nsub_t_*partition, this->nsub_t_*partition*i + 1, this->nsub_t_*partition*(i+1)) ;
             this->sub_division_vec_[i] = temp;
             this->sub_division_(i,Eigen::seq(0,this->nsub_t_*partition-1)) = temp;
           }
         }
         // SEQUENTIAL (all subs assigned to the same process)
-        else if(this->np_ == 1){
+        else if(this->np_ == 1)
+        {
           this->sub_division_.setZero();
           auto temp = Eigen::VectorXi::LinSpaced(this->nsub_t_*this->nsub_x_, 1, this->nsub_t_*this->nsub_x_) ;
           this->sub_division_vec_[0]=temp;          
