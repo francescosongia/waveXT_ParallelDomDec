@@ -68,7 +68,7 @@ int main(int argc, char* argv[]) {
               && "AloneOnStride requires size = nsubx.");
     assert(!((la == "CooperationOnStride" || la =="CooperationSplitTime") && size%nsub_x !=0)  
               && "CooperationOnStride and CooperationSplitTime require size proportional to nsubx.");
-    assert(!(method == "RAS" && la == "CooperationSplitTime" && nsub_t%size !=0)  
+    assert(!(method == "RAS" && la == "CooperationSplitTime" && nsub_t%(size/nsub_x)!=0)  
               && "CooperationSplitTime with RAS requires number of time subs proportional to number of cores.");
     assert(!(nsub_t == 1 || nsub_x == 1)                            
               && "nsubx and nsubt must be >= 1.");
