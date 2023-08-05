@@ -19,7 +19,7 @@
 
   [./traits]
     method         = PIPE
-    linear_algebra = AloneOnStride
+    linear_algebra = CooperationSplitTime
     max_iter       = 100
     tol            = 1e-10
     tol_pipe_sx    = 1e-10
