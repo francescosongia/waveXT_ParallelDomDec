@@ -59,6 +59,8 @@ public:
 
   virtual void createSubDivision() = 0;
 
+  //void createSubDivision(){static_cast<LA*>(this)->createSubDivision();};
+
   
   unsigned int idxSub_to_LocalNumbering(unsigned int k,int current_rank) const  
   // returns the index in the local matrices storage structures correpsonding to subdomain k.
