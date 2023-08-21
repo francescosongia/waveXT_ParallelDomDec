@@ -26,18 +26,20 @@ The repo contains 5 directories:
 
 -------------------------------------------------------------------------------
 During the implementation of this program we have used the following libraries:
- - Eigen
- - GetPot
- - Gnuplot
- - mpi
+ - Eigen, version
+ - GetPot, version
+ - Gnuplot, version
+ They are all needed to run the program.
 
-We have used COMPILATORE to compile the program
+We have used mpic++ to compile the program, version
 
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
 
 TO COMPILE AND TEST THE PROGRAM IT'S ENOUGH TO: 
  - define the Eigen path in Makefile
+ - set test parameters in the data file in the corresponding test folder
+    (example, tests\test1\data)
  - type make help to see available commands
  - type for example make run 2 test1, to run the code with two cores
 
