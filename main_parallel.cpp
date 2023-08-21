@@ -128,7 +128,6 @@ int main(int argc, char* argv[]) {
     // postprocessing and save files
     auto res = res_obj.getUW();
     if (rank==0){
-        std::cout<<res(0)<<std::endl;
         std::string f= "results/u.txt"; 
         saveVec_totxt(f,res);
         // preapare the result for gnuplot

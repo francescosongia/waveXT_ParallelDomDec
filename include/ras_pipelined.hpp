@@ -92,8 +92,7 @@ class PipeParallel_AloneOnStride : public RasPipelined<PipeParallel_AloneOnStrid
         auto start = std::chrono::steady_clock::now();
         double tol=this->traits_.tol();
         unsigned int max_it=this->traits_.max_it();
-        double res=tol+1;
-        std::vector<double> resinf_vec;   
+        double res=tol+1; 
         unsigned int niter=0;
 
         Eigen::VectorXd uw=Eigen::VectorXd::Zero(this->domain.nln()*this->domain.nt()*this->domain.nx()*2);
@@ -103,7 +102,6 @@ class PipeParallel_AloneOnStride : public RasPipelined<PipeParallel_AloneOnStrid
             v=b-A*uw;
             res=v.lpNorm<Eigen::Infinity>();
             uw=uw+precondAction(b-A*uw);
-            resinf_vec.push_back(res);
             niter++;
 
         }
@@ -293,7 +291,6 @@ class PipeParallel_CooperationOnStride : public RasPipelined<PipeParallel_Cooper
         double tol=this->traits_.tol();
         unsigned int max_it=this->traits_.max_it();
         double res=tol+1;
-        std::vector<double> resinf_vec;   
         unsigned int niter=0;
 
         int dim_res{static_cast<int>(this->domain.nln()*this->domain.nt()*this->domain.nx()*2)};
@@ -326,7 +323,6 @@ class PipeParallel_CooperationOnStride : public RasPipelined<PipeParallel_Cooper
             v=b-prod;
             res=v.lpNorm<Eigen::Infinity>();
             uw=uw+precondAction(b-prod);
-            resinf_vec.push_back(res);
             niter++;
 
         }
@@ -551,7 +547,6 @@ class PipeSequential : public RasPipelined<PipeSequential,AloneOnStride>
         double tol=this->traits_.tol();
         unsigned int max_it=this->traits_.max_it();
         double res=tol+1;
-        std::vector<double> resinf_vec; 
         unsigned int niter=0;
 
         Eigen::VectorXd uw=Eigen::VectorXd::Zero(this->domain.nln()*this->domain.nt()*this->domain.nx()*2);
@@ -561,7 +556,6 @@ class PipeSequential : public RasPipelined<PipeSequential,AloneOnStride>
             v=b-A*uw;
             res=v.lpNorm<Eigen::Infinity>();
             uw=uw+precondAction(b-A*uw);
-            resinf_vec.push_back(res);
             niter++;
 
         }
@@ -686,7 +680,6 @@ class PipeParallel_CooperationSplitTime : public RasPipelined<PipeParallel_Coope
         double tol=this->traits_.tol();
         unsigned int max_it=this->traits_.max_it();
         double res=tol+1;
-        std::vector<double> resinf_vec;   
         unsigned int niter=0;
 
         Eigen::VectorXd uw=Eigen::VectorXd::Zero(this->domain.nln()*this->domain.nt()*this->domain.nx()*2);
@@ -696,7 +689,6 @@ class PipeParallel_CooperationSplitTime : public RasPipelined<PipeParallel_Coope
             v=b-A*uw;
             res=v.lpNorm<Eigen::Infinity>();
             uw=uw+precondAction(b-A*uw);
-            resinf_vec.push_back(res);
             niter++;
         }
         unsigned int solves = this->traits_.solves();

@@ -81,7 +81,6 @@ class Parallel_AloneOnStride : public Ras<Parallel_AloneOnStride,AloneOnStride>
       double tol = this->traits_.tol();
       unsigned int max_it = this->traits_.max_it();
       double res = tol+1;
-      std::vector<double> relres2P_vec;
       unsigned int niter = 0;
       double Pb2 = precondAction(b).norm();
 
@@ -93,7 +92,6 @@ class Parallel_AloneOnStride : public Ras<Parallel_AloneOnStride,AloneOnStride>
           uw1 = uw0 + z;  
           z = precondAction(b - A*uw1);
           res = (z/Pb2).norm();
-          relres2P_vec.push_back(res);
           niter++;
           uw0 = uw1;
       }
@@ -150,7 +148,6 @@ public:
     double tol = this->traits_.tol();
     unsigned int max_it = this->traits_.max_it();
     double res = tol+1;
-    std::vector<double> relres2P_vec;
     unsigned int niter = 0;
     double Pb2 = precondAction(b).norm();
 
@@ -162,7 +159,6 @@ public:
         uw1 = uw0 + z;  
         z = precondAction(b-A*uw1);
         res = (z/Pb2).norm();
-        relres2P_vec.push_back(res);
         niter++;
         uw0 = uw1;
     }
@@ -326,7 +322,6 @@ class Parallel_CooperationOnStride : public Ras<Parallel_CooperationOnStride,Coo
       double tol = this->traits_.tol();
       unsigned int max_it = this->traits_.max_it();
       double res = tol+1;
-      std::vector<double> relres2P_vec;
       unsigned int niter = 0;
       double Pb2 = precondAction(b).norm();
 
@@ -363,7 +358,6 @@ class Parallel_CooperationOnStride : public Ras<Parallel_CooperationOnStride,Coo
 
           z = precondAction(b-prod);          
           res = (z/Pb2).norm();
-          relres2P_vec.push_back(res);
           niter++;
           uw0 = uw1;
       }
@@ -432,7 +426,6 @@ class Parallel_CooperationSplitTime : public Ras<Parallel_CooperationSplitTime,C
       double tol = this->traits_.tol();
       unsigned int max_it = this->traits_.max_it();
       double res = tol+1;
-      std::vector<double> relres2P_vec;
       unsigned int niter = 0;
       double Pb2 = precondAction(b).norm();
 
@@ -444,7 +437,6 @@ class Parallel_CooperationSplitTime : public Ras<Parallel_CooperationSplitTime,C
           uw1 = uw0 + z; 
           z = precondAction(b - A*uw1);
           res = (z/Pb2).norm();
-          relres2P_vec.push_back(res);
           niter++;
           uw0 = uw1;
       }

@@ -72,7 +72,6 @@ int main(int argc, char* argv[]) {
     }
     // postprocessing
     auto res = res_obj.getUW();
-    std::cout<<res(0)<<std::endl;
     std::string f= "results//u.txt";
     saveVec_totxt(f,res);
 
