@@ -74,5 +74,12 @@ endif
 		mpiexec -n $(word 1, $(filter-out $@,$(MAKECMDGOALS))) ./maincustom 
 
 
+ITERATIONS = 10
+moretest: main
+	@for i in $(shell seq 1 $(ITERATIONS)); do \
+			echo "Iteration $$i"; \
+			mpiexec -n $(word 1, $(filter-out $@,$(MAKECMDGOALS))) ./main -t $(word 2, $(filter-out $@,$(MAKECMDGOALS))) \
+		done
+
 %:
 	@:
