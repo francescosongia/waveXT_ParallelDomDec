@@ -26,12 +26,11 @@ The repo contains 5 directories:
 
 -------------------------------------------------------------------------------
 During the implementation of this program we have used the following libraries:
- - Eigen, version
- - GetPot, version
- - Gnuplot, version
+ - Eigen, version 3.4.0
+ - Gnuplot, version 5.2
  They are all needed to run the program.
 
-We have used mpic++ to compile the program, version
+We have used mpic++ to compile the program, version 9.4.0
 
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
@@ -51,7 +50,7 @@ This program works with an already created DG discretized problem from the
 NAPDE project. The problem is already represented with the matrix A and the 
 right-hand side b, those are stored in .txt files in the tests folders.
 Here we report the repo of the NAPDE project
-LINK NAPDE REPO
+https://github.com/NNrico/waveDG_XT_RAS
 In this repo it is possible to assemble the DG problem matrices using
 the create_matrices_PACS_project.m file.
 
