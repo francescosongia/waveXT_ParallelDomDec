@@ -28,7 +28,7 @@ int main(int argc, char* argv[]) {
     int m = datafile("parameters/decomposition/size_subt", 0);
 
     std::string method= datafile("parameters/traits/method", "RAS");
-    std::string la= datafile("parameters/traits/linear_algebra", "AloneOnStride");
+    std::string la= datafile("parameters/traits/ParPolicy", "AloneOnStride");
     unsigned int max_it = datafile("parameters/traits/max_iter", 100);
     double tol = datafile("parameters/traits/tol", 1e-10);
     double tol_pipe_sx = datafile("parameters/traits/tol_pipe_sx", 1e-10);
@@ -50,7 +50,7 @@ int main(int argc, char* argv[]) {
     Decomposition DataDD(dom, nsub_x, nsub_t,n,m);
     std::cout<<"Size of space sub: "<<DataDD.sub_sizes()[0]<<"  and time sub: "<<DataDD.sub_sizes()[1]<<std::endl;
 
-    //read gloval matrices
+    //read global matrices
     SpMat A=readMat_fromtxt(filenameA,nt*nx*nln*2,nt*nx*nln*2);
     SpMat b=readMat_fromtxt(filenameb,nt*nx*nln*2,1);
 

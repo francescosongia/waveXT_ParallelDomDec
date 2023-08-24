@@ -33,7 +33,6 @@ During the implementation of this program we have used the following libraries:
 We have used mpic++ to compile the program, version 9.4.0
 
 -------------------------------------------------------------------------------
--------------------------------------------------------------------------------
 
 TO COMPILE AND TEST THE PROGRAM IT'S ENOUGH TO: 
  - define the Eigen path in Makefile
@@ -45,12 +44,11 @@ TO COMPILE AND TEST THE PROGRAM IT'S ENOUGH TO:
 while in the root folder.
 
 -------------------------------------------------------------------------------
--------------------------------------------------------------------------------
+
 This program works with an already created DG discretized problem from the
 NAPDE project. The problem is already represented with the matrix A and the 
 right-hand side b, those are stored in .txt files in the tests folders.
-Here we report the repo of the NAPDE project
-https://github.com/NNrico/waveDG_XT_RAS
+Here we report the repo of the NAPDE project: https://github.com/NNrico/waveDG_XT_RAS.
 In this repo it is possible to assemble the DG problem matrices using
 the create_matrices_PACS_project.m file.
 

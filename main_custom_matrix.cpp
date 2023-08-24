@@ -32,7 +32,7 @@ int main(int argc, char* argv[]) {
     int m = datafile("parameters/decomposition/size_subt", 0); 
 
     std::string method= datafile("parameters/traits/method", "RAS");
-    std::string la= datafile("parameters/traits/linear_algebra", "AloneOnStride");
+    std::string la= datafile("parameters/traits/ParPolicy", "AloneOnStride");
     unsigned int max_it = datafile("parameters/traits/max_iter", 100);
     double tol = datafile("parameters/traits/tol", 1e-10);
     double tol_pipe_sx = datafile("parameters/traits/tol_pipe_sx", 1e-10);
