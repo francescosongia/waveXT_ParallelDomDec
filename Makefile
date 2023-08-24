@@ -1,6 +1,7 @@
 PROJECT_ROOT=$(CURDIR)
+EIGEN_PATH = $(mkEigenInc)
 
-CPPFLAGS = -I $(PROJECT_ROOT)/include/ 
+CPPFLAGS = -I $(PROJECT_ROOT)/include/ -I$(EIGEN_PATH)
 
 SRC_DIR := $(PROJECT_ROOT)/src
 
