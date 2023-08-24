@@ -1,5 +1,5 @@
 PROJECT_ROOT=$(CURDIR)
-EIGEN_PATH = $(mkEigenInc)
+EIGEN_PATH = /home/scientific-vm/Desktop/   #$(mkEigenInc)
 
 CPPFLAGS = -I $(PROJECT_ROOT)/include/ -I$(EIGEN_PATH)
 
@@ -24,7 +24,7 @@ CC=$(CXX)
 CXXFLAGS=-O2 -Wall -std=c++17
 
 help:
-	@echo "Options:" 
+	@echo "Options:"
 	@echo " - make all to build sequential and parallel"
 	@echo " - make main, mainseq, maincustom to build parallel, sequential and"
 	@echo "   custom matrix version, respectively"
@@ -37,7 +37,7 @@ help:
 	@echo "   data and parameters specified in tests/custom/data"
 	@echo "   							"
 	@echo "See doc/report.pdf for more informations"
-	
+
 all: main mainseq
 
 distclean:
@@ -72,7 +72,7 @@ ifeq ($(filter-out $@,$(MAKECMDGOALS)),)
 		@echo "Usage: make runcustom <num_processes>"
 		@exit 1
 endif
-		mpiexec -n $(word 1, $(filter-out $@,$(MAKECMDGOALS))) ./maincustom 
+		mpiexec -n $(word 1, $(filter-out $@,$(MAKECMDGOALS))) ./maincustom
 
 
 ITERATIONS = 10
