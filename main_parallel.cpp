@@ -48,7 +48,7 @@ int main(int argc, char* argv[]) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
  
-    // check paramters and policies
+    // check parameters and policies
     std::set<std::string> method_implemented = {"RAS", "PIPE" };
     std::set<std::string> la_policy_implemented = {"AloneOnStride", "CooperationOnStride" ,"CooperationSplitTime"};
     if (method_implemented.find(method) == method_implemented.end()) 

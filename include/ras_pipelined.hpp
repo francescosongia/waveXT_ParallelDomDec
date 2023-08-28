@@ -23,7 +23,7 @@ public:
         // where P^-1 is the sum (over all subdomains k inside the zone) of (Rtilde_k' * A_k^-1 * R_k)
         // for convergence check the L_Inf residual
 
-        // initialize parameters for zone evolution 
+        // initialize parameters for sliding window evolution 
         this->traits_.setZone(2);
         this->traits_.setSubtSx(1);
         this->traits_.setItWaited(0);
@@ -43,7 +43,7 @@ protected:
 
 /*
 all the following policies have a solve method with the Richardson loop that calls at each iteration
-the function precondaction that compute the effect of P^-1 on the residual. checksx is called by precondaction
+the function precondaction that computes the effect of P^-1 on the residual. checksx is called by precondaction
 to update the zone. 
 
 --------------------------------------------------------------------------------

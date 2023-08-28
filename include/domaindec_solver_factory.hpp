@@ -12,7 +12,7 @@
 
 /*
 SOLVER FACTORY
-create pointers a solver object and run with the operator () the solve method
+create pointers to a solver object. Run with the operator () the solve method
 */
 
 template< class P,class LA>

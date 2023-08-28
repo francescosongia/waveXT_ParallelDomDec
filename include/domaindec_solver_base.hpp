@@ -20,7 +20,7 @@ typedef Eigen::Triplet<double> T;
 
 /*
 SOLVER BASE VIRTUAL CLASS
-solve method will be overriden by the different policies
+solve method will be overridden by the different policies
 */
 template <class P, class LA>
 class DomainDecSolverBase {

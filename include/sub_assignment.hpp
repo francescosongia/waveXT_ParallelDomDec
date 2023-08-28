@@ -95,9 +95,6 @@ public:
 
 
 
-
-// SEQUENTIAL LINEAR ALGEBRA.
-// it does not mean that all the solver is sequential, it could be parallelized by assigning the subdomains to different processes
 class AloneOnStride : public SubAssignment<AloneOnStride>
 {
   public:
@@ -140,7 +137,7 @@ class AloneOnStride : public SubAssignment<AloneOnStride>
 };
 
 
-// PARALLEL LINEAR ALGEBRA
+
 class CooperationOnStride : public SubAssignment<CooperationOnStride>
 {
   public:
@@ -155,7 +152,7 @@ class CooperationOnStride : public SubAssignment<CooperationOnStride>
 
     void createSubDivision() override
     {
-      // n.° process > nsubx. Assign to each time stride at least two processses. In thi way the linear 
+      // n.° process > nsubx. Assign to each time stride at least two processses. In this way the linear 
       // algebra computation are parallelized between them. 
 
       int partition{0};

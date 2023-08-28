@@ -72,7 +72,6 @@ public:
         unsigned int k_local{0};
         for(unsigned int k : sub_division_vec)
         {
-
             std::pair<SpMat, SpMat> res= this->createRK(k);
             k_local++;
             this->R_[k_local-1] = std::move(res.first);
