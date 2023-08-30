@@ -32,6 +32,15 @@ During the implementation of this program we have used the following libraries:
 
 We have used mpic++ to compile the program, version 9.4.0
 
+During the implementation of this program we have not used the APSC modules and
+we underline that the Eigen version in those modules is not 3.4.0. Hence, we 
+report how to obtain the correct version of this library: 
+https://eigen.tuxfamily.org/index.php?title=Main_Page
+
+To use this library is enough to copy the Eigen folder with all the header files.
+There is no binary library to link to, and no configured header file. Eigen is a 
+pure template library defined in the headers. 
+
 -------------------------------------------------------------------------------
 
 TO COMPILE AND TEST THE PROGRAM IT'S ENOUGH TO: 

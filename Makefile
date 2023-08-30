@@ -1,5 +1,7 @@
 PROJECT_ROOT=$(CURDIR)
-EIGEN_PATH = /home/scientific-vm/Desktop/   #$(mkEigenInc)
+
+# here define the directory that contains the Eigen folder 
+EIGEN_PATH = /home/scientific-vm/Desktop/   #$(mkEigenInc) 
 
 CPPFLAGS = -I $(PROJECT_ROOT)/include/ -I$(EIGEN_PATH)
 
